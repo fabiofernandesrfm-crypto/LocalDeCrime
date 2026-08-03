@@ -84,7 +84,7 @@ class _Step5ObjetosState extends State<Step5Objetos> {
                           ),
                           const SizedBox(height: 20),
                           DropdownButtonFormField<String>(
-                            initialValue: categoria,
+                            value: categoria,
                             decoration: _dropdownDecoration('Categoria'),
                             items: _categorias
                                 .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -113,7 +113,7 @@ class _Step5ObjetosState extends State<Step5Objetos> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: DropdownButtonFormField<String>(
-                                  initialValue: situacao,
+                                  value: situacao,
                                   decoration: _dropdownDecoration('Situação'),
                                   items: _situacoes
                                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))

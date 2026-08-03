@@ -81,7 +81,7 @@ class _Step6VestigiosState extends State<Step6Vestigios> {
                           ),
                           const SizedBox(height: 20),
                           DropdownButtonFormField<String>(
-                            initialValue: tipo,
+                            value: tipo,
                             decoration: _decoration('Tipo do Vestígio'),
                             items: _tipos
                                 .map((t) => DropdownMenuItem(value: t, child: Text(t)))
@@ -316,7 +316,7 @@ class _Step6VestigiosState extends State<Step6Vestigios> {
                             ),
                             if (v.localizacao.isNotEmpty) ...[
                               const SizedBox(width: 8),
-                              Expanded(
+                              Flexible(
                                 child: Text(
                                   v.localizacao,
                                   style: const TextStyle(

@@ -124,7 +124,7 @@ class _Step4VeiculosState extends State<Step4Veiculos> {
                           ),
                           const SizedBox(height: 14),
                           DropdownButtonFormField<String>(
-                            initialValue: situacao,
+                            value: situacao,
                             decoration: InputDecoration(
                               labelText: 'Situação',
                               prefixIcon: const Icon(Icons.info_outline),

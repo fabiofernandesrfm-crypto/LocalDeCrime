@@ -28,17 +28,22 @@ class PCPEStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = ResponsiveBreakpoints.of(context).isMobile;
+    final breakpoints = ResponsiveBreakpoints.of(context);
+    final isMobile = breakpoints.isMobile;
+    final isTablet = breakpoints.isTablet;
 
     if (isMobile) {
       return _buildMobileStepper(context);
     }
-    return _buildHorizontalStepper(context);
+    return _buildHorizontalStepper(context, isCompact: isTablet);
   }
 
-  Widget _buildHorizontalStepper(BuildContext context) {
+  Widget _buildHorizontalStepper(BuildContext context, {bool isCompact = false}) {
+    final paddingV = isCompact ? 14.0 : 20.0;
+    final paddingH = isCompact ? 10.0 : 16.0;
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      padding: EdgeInsets.symmetric(vertical: paddingV, horizontal: paddingH),
       decoration: BoxDecoration(
         color: PCPEColors.pureWhite,
         boxShadow: [
@@ -61,7 +66,7 @@ class PCPEStepper extends StatelessWidget {
                   index: index,
                   isActive: isActive,
                   isCompleted: isCompleted,
-                  isCompact: false,
+                  isCompact: isCompact,
                 ),
               );
             }),
@@ -151,12 +156,18 @@ class PCPEStepper extends StatelessWidget {
     required bool isCompleted,
     required bool isCompact,
   }) {
+    final circleSize = isActive ? (isCompact ? 32.0 : 38.0) : (isCompact ? 28.0 : 32.0);
+    final checkSize = isCompact ? 14.0 : 18.0;
+    final numberFontSize = isActive ? (isCompact ? 12.0 : 14.0) : (isCompact ? 10.0 : 12.0);
+    final labelFontSize = isCompact ? 8.0 : 10.0;
+    final lineHeight = isCompact ? 2.0 : 3.0;
+
     return InkWell(
       onTap: allowNavigation ? () => onStepTapped?.call(index) : null,
       borderRadius: BorderRadius.circular(8),
       splashColor: PCPEColors.primary.withValues(alpha: 0.05),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+        padding: EdgeInsets.symmetric(horizontal: isCompact ? 1.0 : 2.0, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -166,8 +177,8 @@ class PCPEStepper extends StatelessWidget {
                 if (index > 0)
                   Expanded(
                     child: Container(
-                      height: 3,
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      height: lineHeight,
+                      margin: EdgeInsets.symmetric(horizontal: isCompact ? 1.0 : 2.0),
                       decoration: BoxDecoration(
                         color: index <= currentStep
                             ? PCPEColors.primary
@@ -182,8 +193,8 @@ class PCPEStepper extends StatelessWidget {
                 AnimatedContainer(
                   duration: PCPEAnimations.normal,
                   curve: PCPEAnimations.standard,
-                  width: isActive ? 38 : 32,
-                  height: isActive ? 38 : 32,
+                  width: circleSize,
+                  height: circleSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isActive || isCompleted ? PCPEColors.primary : PCPEColors.surfaceGray,
@@ -204,11 +215,11 @@ class PCPEStepper extends StatelessWidget {
                         : null,
                   ),
                   child: isCompleted
-                      ? const Icon(Icons.check, size: 18, color: PCPEColors.pureWhite)
+                      ? Icon(Icons.check, size: checkSize, color: PCPEColors.pureWhite)
                       : Text(
                           '${index + 1}',
                           style: TextStyle(
-                            fontSize: isActive ? 14 : 12,
+                            fontSize: numberFontSize,
                             fontWeight: FontWeight.w700,
                             color: isActive ? PCPEColors.pureWhite : PCPEColors.mediumGray,
                           ),
@@ -217,8 +228,8 @@ class PCPEStepper extends StatelessWidget {
                 if (index < totalSteps - 1)
                   Expanded(
                     child: Container(
-                      height: 3,
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      height: lineHeight,
+                      margin: EdgeInsets.symmetric(horizontal: isCompact ? 1.0 : 2.0),
                       decoration: BoxDecoration(
                         color: index < currentStep
                             ? PCPEColors.primary
@@ -236,7 +247,7 @@ class PCPEStepper extends StatelessWidget {
             Text(
               labels[index],
               style: TextStyle(
-                fontSize: isCompact ? 9 : 10,
+                fontSize: labelFontSize,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                 color: isActive || isCompleted ? PCPEColors.black : PCPEColors.mediumGray,
               ),

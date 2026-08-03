@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../../shared/models/media_item.dart';
 
 /// Modelo de dados para o Wizard de Registro de Ocorrência.
 /// Mantém todo o estado durante o fluxo de cadastro (dados MOCK).
@@ -78,48 +79,6 @@ class VestigioEncontrado {
   });
 }
 
-class FotografiaRegistro {
-  final int id;
-  String categoria;
-  String legenda;
-  DateTime data;
-  String hora;
-  String gps;
-
-  FotografiaRegistro({
-    required this.id,
-    this.categoria = 'Geral',
-    this.legenda = '',
-    DateTime? data,
-    this.hora = '',
-    this.gps = '',
-  }) : data = data ?? DateTime.now();
-
-  Color get placeholderColor {
-    const colors = [
-      Color(0xFF1565C0),
-      Color(0xFF2E7D32),
-      Color(0xFFEF6C00),
-      Color(0xFF6A1B9A),
-      Color(0xFFC62828),
-      Color(0xFF00838F),
-    ];
-    return colors[id % colors.length];
-  }
-
-  IconData get placeholderIcon {
-    const icons = [
-      Icons.image,
-      Icons.photo_camera,
-      Icons.landscape,
-      Icons.camera_alt,
-      Icons.photo,
-      Icons.collections,
-    ];
-    return icons[id % icons.length];
-  }
-}
-
 class OcorrenciaWizardData {
   // ── Etapa 1: Identificação ──────────────────────────────────
   late final String numeroProtocolo;
@@ -131,7 +90,9 @@ class OcorrenciaWizardData {
   TimeOfDay? horaOcorrencia;
   String prioridade = 'Alta';
   String status = 'Em andamento';
-  String unidadeResponsavel = 'DTI – UNISA';
+  String diretoria = '';
+  String divisao = '';
+  String unidadeResponsavel = '';
   String equipeResponsavel = 'Equipe Delta - Plantão A';
 
   // ── Etapa 2: Local do Crime ─────────────────────────────────
@@ -159,8 +120,8 @@ class OcorrenciaWizardData {
   // ── Etapa 6: Vestígios ──────────────────────────────────────
   List<VestigioEncontrado> vestigios = [];
 
-  // ── Etapa 7: Fotografias ────────────────────────────────────
-  List<FotografiaRegistro> fotografias = [];
+  // ── Etapa 7: Fotografias e Mídias ───────────────────────────
+  List<MediaItem> midias = [];
 
   // ── Etapa 8: Narrativa ──────────────────────────────────────
   String narrativa = '';

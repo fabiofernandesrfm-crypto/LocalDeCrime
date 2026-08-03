@@ -147,9 +147,15 @@ class _NovaOcorrenciaScreenState extends State<NovaOcorrenciaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = ResponsiveBreakpoints.of(context).isMobile;
+    final breakpoints = ResponsiveBreakpoints.of(context);
+    final isMobile = breakpoints.isMobile;
+    final isTablet = breakpoints.isTablet;
+    final isDesktop = breakpoints.isDesktop;
     final isFinalStep = _currentStep == 9;
     final isReviewStep = _currentStep == 8;
+
+    final bottomPadding = isDesktop ? 20.0 : 16.0;
+    final contentPadding = isDesktop ? 24.0 : 16.0;
 
     return PopScope(
       canPop: isFinalStep,
@@ -168,6 +174,7 @@ class _NovaOcorrenciaScreenState extends State<NovaOcorrenciaScreen> {
           backgroundColor: PCPEColors.pureWhite,
           elevation: 0,
           shadowColor: Colors.black12,
+          toolbarHeight: isDesktop ? 64 : 56,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, size: 20),
             color: PCPEColors.primary,
@@ -208,7 +215,7 @@ class _NovaOcorrenciaScreenState extends State<NovaOcorrenciaScreen> {
                 child: PCPEButton(
                   label: isMobile ? 'Salvar' : 'Salvar Rascunho',
                   icon: Icons.save_outlined,
-                  small: isMobile,
+                  small: isMobile || isTablet,
                   outlined: true,
                   loading: _salvandoRascunho,
                   onPressed: _salvarRascunho,
@@ -255,7 +262,12 @@ class _NovaOcorrenciaScreenState extends State<NovaOcorrenciaScreen> {
             // Bottom navigation bar
             if (!isFinalStep)
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.fromLTRB(
+                  bottomPadding,
+                  bottomPadding,
+                  bottomPadding,
+                  bottomPadding,
+                ),
                 decoration: BoxDecoration(
                   color: PCPEColors.pureWhite,
                   boxShadow: [

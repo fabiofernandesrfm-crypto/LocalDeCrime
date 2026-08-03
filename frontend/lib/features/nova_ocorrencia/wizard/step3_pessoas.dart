@@ -74,7 +74,7 @@ class _Step3PessoasState extends State<Step3Pessoas> {
                           ),
                           const SizedBox(height: 20),
                           DropdownButtonFormField<String>(
-                            initialValue: tipo,
+                            value: tipo,
                             decoration: InputDecoration(
                               labelText: 'Tipo de Envolvimento',
                               prefixIcon: const Icon(Icons.person_outline),

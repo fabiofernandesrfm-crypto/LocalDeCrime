@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:responsive_framework/responsive_framework.dart';
 import '../../../design_system/design_system.dart';
 import '../../../shared/widgets/pcpe_card.dart';
 import '../../../shared/widgets/pcpe_button.dart';
@@ -54,21 +55,23 @@ class Step9Revisao extends StatelessWidget {
             icon: Icons.description_outlined,
             index: 0,
             children: [
-              _buildField('Protocolo', data.numeroProtocolo),
-              _buildField('Nº BO', data.numeroBO, emptyText: 'Não informado'),
-              _buildField('Nº Inquérito', data.numeroInquerito, emptyText: 'Não informado'),
-              _buildField('Natureza', data.natureza),
-              _buildField('Tipo da Ocorrência', data.tipoOcorrencia),
-              _buildField('Data', data.dataOcorrencia != null
+              _buildField(context, 'Protocolo', data.numeroProtocolo),
+              _buildField(context, 'Nº BO', data.numeroBO, emptyText: 'Não informado'),
+              _buildField(context, 'Nº Inquérito', data.numeroInquerito, emptyText: 'Não informado'),
+              _buildField(context, 'Natureza', data.natureza),
+              _buildField(context, 'Tipo da Ocorrência', data.tipoOcorrencia),
+              _buildField(context, 'Data', data.dataOcorrencia != null
                   ? '${data.dataOcorrencia!.day.toString().padLeft(2, '0')}/${data.dataOcorrencia!.month.toString().padLeft(2, '0')}/${data.dataOcorrencia!.year}'
                   : 'Não informada'),
-              _buildField('Hora', data.horaOcorrencia != null
+              _buildField(context, 'Hora', data.horaOcorrencia != null
                   ? '${data.horaOcorrencia!.hour.toString().padLeft(2, '0')}:${data.horaOcorrencia!.minute.toString().padLeft(2, '0')}'
                   : 'Não informada'),
-              _buildField('Prioridade', data.prioridade),
-              _buildField('Status', data.status),
-              _buildField('Unidade', data.unidadeResponsavel),
-              _buildField('Equipe', data.equipeResponsavel),
+              _buildField(context, 'Prioridade', data.prioridade),
+              _buildField(context, 'Status', data.status),
+              _buildField(context, 'Diretoria', data.diretoria, emptyText: 'Não informada'),
+              _buildField(context, 'Divisão', data.divisao, emptyText: 'Não informada'),
+              _buildField(context, 'Unidade', data.unidadeResponsavel, emptyText: 'Não informada'),
+              _buildField(context, 'Equipe', data.equipeResponsavel),
             ],
           ),
           const SizedBox(height: 12),
@@ -77,15 +80,15 @@ class Step9Revisao extends StatelessWidget {
             icon: Icons.location_on_outlined,
             index: 1,
             children: [
-              _buildField('UF', data.uf, emptyText: 'Não informado'),
-              _buildField('Município', data.municipio, emptyText: 'Não informado'),
-              _buildField('Bairro', data.bairro, emptyText: 'Não informado'),
-              _buildField('Logradouro', data.logradouro, emptyText: 'Não informado'),
-              _buildField('Número', data.numero, emptyText: 'S/N'),
-              _buildField('Complemento', data.complemento, emptyText: '—'),
-              _buildField('CEP', data.cep, emptyText: '—'),
-              _buildField('Ponto de Referência', data.pontoReferencia, emptyText: '—'),
-              _buildField('Coordenadas', data.gpsCapturado
+              _buildField(context, 'UF', data.uf, emptyText: 'Não informado'),
+              _buildField(context, 'Município', data.municipio, emptyText: 'Não informado'),
+              _buildField(context, 'Bairro', data.bairro, emptyText: 'Não informado'),
+              _buildField(context, 'Logradouro', data.logradouro, emptyText: 'Não informado'),
+              _buildField(context, 'Número', data.numero, emptyText: 'S/N'),
+              _buildField(context, 'Complemento', data.complemento, emptyText: '—'),
+              _buildField(context, 'CEP', data.cep, emptyText: '—'),
+              _buildField(context, 'Ponto de Referência', data.pontoReferencia, emptyText: '—'),
+              _buildField(context, 'Coordenadas', data.gpsCapturado
                   ? '${data.latitude}, ${data.longitude}'
                   : 'GPS não capturado'),
             ],
@@ -208,14 +211,39 @@ class Step9Revisao extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildReviewCard(
-            title: 'Fotografias',
+            title: 'Fotografias e Mídias',
             icon: Icons.photo_camera_outlined,
             index: 6,
-            extra: data.fotografias.isEmpty
-                ? const Text('Nenhuma fotografia registrada',
+            extra: data.midias.isEmpty
+                ? const Text('Nenhuma mídia registrada',
                     style: TextStyle(fontSize: 13, color: PCPEColors.mediumGray, fontStyle: FontStyle.italic))
-                : Text('${data.fotografias.length} fotografia(s) registrada(s)',
-                    style: const TextStyle(fontSize: 13, color: PCPEColors.success, fontWeight: FontWeight.w600)),
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${data.midias.length} mídia(s) registrada(s)',
+                          style: const TextStyle(fontSize: 13, color: PCPEColors.success, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 8),
+                      ...data.midias.map((m) => Container(
+                        margin: const EdgeInsets.only(bottom: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: PCPEColors.cardGray,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(m.tipoIcon, size: 14, color: m.placeholderColor),
+                            const SizedBox(width: 8),
+                            Text(m.legenda.isNotEmpty ? m.legenda : m.tipoLabel,
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                            const Spacer(),
+                            Text(m.tipoLabel,
+                                style: TextStyle(fontSize: 11, color: m.placeholderColor)),
+                          ],
+                        ),
+                      )),
+                    ],
+                  ),
           ),
           const SizedBox(height: 12),
           _buildReviewCard(
@@ -295,18 +323,20 @@ class Step9Revisao extends StatelessWidget {
     );
   }
 
-  Widget _buildField(String label, String value, {String emptyText = '—'}) {
+  Widget _buildField(BuildContext context, String label, String value, {String emptyText = '—'}) {
+    final isMobile = ResponsiveBreakpoints.of(context).isMobile;
     final display = value.isNotEmpty ? value : emptyText;
     final isEmpty = value.isEmpty;
+    final labelWidth = isMobile ? 95.0 : 120.0;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 120,
+          width: labelWidth,
           child: Text(
             label,
-            style: const TextStyle(
-              fontSize: 12,
+            style: TextStyle(
+              fontSize: isMobile ? 11 : 12,
               fontWeight: FontWeight.w600,
               color: PCPEColors.mediumGray,
             ),
