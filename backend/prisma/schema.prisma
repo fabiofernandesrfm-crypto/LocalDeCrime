@@ -1,0 +1,1424 @@
+// ============================================================================
+// Schema Prisma — Sistema de Registro de Atendimento em Local de Crime (PCPE)
+// Versão: 2.1.0
+// Baseado em: DATABASE_ARCHITECTURE.md
+// SGBD: PostgreSQL 16 + PostGIS 3.4
+// ============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgcrypto]
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+/// Papéis básicos de usuário no sistema (RBAC complementar via Perfis/Permissões)
+enum Role {
+  ADMIN
+  CHEFE_EQUIPE
+  PERITO
+  AGENTE
+}
+
+/// Status de um atendimento em local de crime
+enum StatusAtendimento {
+  ABERTO
+  EM_ANDAMENTO
+  CONCLUIDO
+  CANCELADO
+}
+
+/// Tipos de local onde ocorreu o crime
+enum TipoLocal {
+  RESIDENCIA
+  VIA_PUBLICA
+  ESTABELECIMENTO_COMERCIAL
+  AREA_RURAL
+  VEICULO
+  OUTRO
+}
+
+/// Tipos de unidade organizacional da PCPE
+enum TipoUnidade {
+  DELEGACIA
+  INSTITUTO
+  DEPARTAMENTO
+}
+
+/// Status de uma ocorrência policial
+enum StatusOcorrencia {
+  ABERTA
+  EM_INVESTIGACAO
+  CONCLUIDA
+  ARQUIVADA
+}
+
+/// Tipos de envolvimento de uma pessoa na ocorrência
+enum TipoEnvolvimento {
+  VITIMA
+  TESTEMUNHA
+  SUSPEITO
+  PROPRIETARIO
+  RESPONSAVEL
+  OUTRO
+}
+
+/// Status da cadeia de custódia de um vestígio
+enum StatusCadeia {
+  COLETADO
+  ACONDICIONADO
+  TRANSPORTADO
+  RECEBIDO
+  EM_ANALISE
+  ANALISADO
+  DESCARTADO
+  DEVOLVIDO
+}
+
+/// Tipos de equipe de atendimento
+enum TipoEquipe {
+  PERICIA
+  INVESTIGACAO
+  PLANTAO
+  ESPECIAL
+}
+
+/// Status de uma equipe
+enum StatusEquipe {
+  ATIVA
+  INATIVA
+  EM_DESLOCAMENTO
+  EM_ATENDIMENTO
+}
+
+/// Status de uma operação de sincronização offline
+enum StatusSincronizacao {
+  PENDENTE
+  ENVIADO
+  CONFIRMADO
+  CONFLITO
+  FALHA
+}
+
+/// Tipos de mídia registrados no sistema
+enum TipoMidia {
+  FOTO
+  VIDEO
+  AUDIO
+  DOCUMENTO
+}
+
+/// Níveis de severidade para logs do sistema
+enum NivelLog {
+  DEBUG
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+/// Ações registradas na auditoria do sistema
+enum AcaoAuditoria {
+  CRIAR
+  ATUALIZAR
+  DELETAR
+  VISUALIZAR
+  EXPORTAR
+  LOGIN
+  LOGOUT
+  FALHA_LOGIN
+}
+
+/// Tipos de assinatura digital aceitos
+enum TipoAssinatura {
+  BIOMETRICA
+  CERTIFICADO_DIGITAL
+  PIN
+  SENHA
+}
+
+/// Status de uma sessão de usuário
+enum StatusSessao {
+  ATIVA
+  EXPIRADA
+  REVOGADA
+}
+
+/// Tipos de acondicionamento de vestígios
+enum TipoAcondicionamento {
+  SACO_PLASTICO
+  ENVELOPE_PAPEL
+  CAIXA_PAPELAO
+  TUBO_ENSAIO
+  FRASCO_VIDRO
+  LACRE_METALICO
+}
+
+/// Categorias de objetos apreendidos
+enum CategoriaObjeto {
+  ELETRONICO
+  DOCUMENTO
+  JOIA
+  FERRAMENTA
+  VESTUARIO
+  OUTRO
+}
+
+/// Tipos de armas
+enum TipoArma {
+  REVOLVER
+  PISTOLA
+  ESPINGARDA
+  FUZIL
+  FACA
+  FACAO
+  OUTRA_BRANCA
+  OUTRA_FOGO
+}
+
+/// Tipos de munição por calibre
+enum TipoMunicao {
+  CALIBRE_22
+  CALIBRE_38
+  CALIBRE_380
+  CALIBRE_9MM
+  CALIBRE_12
+  CALIBRE_556
+  CALIBRE_762
+  OUTRO
+}
+
+/// Tipos de drogas/entorpecentes
+enum TipoDroga {
+  MACONHA
+  COCAINA
+  CRACK
+  HEROINA
+  LSD
+  ECSTASY
+  METANFETAMINA
+  OUTRA
+}
+
+/// Métodos de autenticação suportados
+enum MetodoAutenticacao {
+  SENHA
+  BIOMETRIA
+  CERTIFICADO
+  SSO
+}
+
+/// Sexo para cadastro de pessoas envolvidas
+enum Sexo {
+  MASCULINO
+  FEMININO
+  NAO_INFORMADO
+}
+
+/// Tipo de pessoa (física ou jurídica)
+enum TipoPessoa {
+  FISICA
+  JURIDICA
+}
+
+/// Status de processamento de uma mídia
+enum StatusProcessamentoMidia {
+  PENDENTE
+  PROCESSANDO
+  CONCLUIDO
+  FALHA
+}
+
+/// Função de um usuário dentro de uma equipe
+enum FuncaoEquipe {
+  CHEFE
+  PERITO
+  AGENTE
+  FOTOGRAFO
+  MOTORISTA
+  AUXILIAR
+}
+
+// ============================================================================
+// DOMÍNIO 1: AUTENTICAÇÃO E GESTÃO DE USUÁRIOS
+// ============================================================================
+
+/// Usuário do sistema — policiais e servidores com acesso
+model Usuario {
+  id           String    @id @default(uuid())
+  matricula    String    @unique
+  nome         String
+  email        String    @unique
+  senha        String
+  cargo        String?
+  role         Role      @default(AGENTE)
+  ativo        Boolean   @default(true)
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime? @map("deletado_em")
+
+  // Relacionamentos organizacionais
+  unidadeId String?  @map("unidade_id")
+  unidade   Unidade? @relation(fields: [unidadeId], references: [id])
+
+  // Relacionamentos com outras entidades
+  atendimentosLocais     AtendimentoLocal[]
+  ocorrencias            Ocorrencia[]
+  sessoes                Sessao[]
+  usuarioPerfis          UsuarioPerfil[]
+  equipeUsuarios         EquipeUsuario[]
+  assinaturas            Assinatura[]
+  auditorias             Auditoria[]
+  historicosAlteracao    HistoricoAlteracao[]
+  linhasTempo            LinhaTempo[]
+  dispositivos           Dispositivo[]
+  filaSincronizacao      FilaSincronizacao[]
+  fotografias            Fotografia[]
+  videos                 Video[]
+  audios                 Audio[]
+  documentosAnexos       DocumentoAnexo[]
+  cadeiasCustodia        CadeiaCustodia[]
+  backupsRegistro        BackupRegistro[]
+  logsSistema            LogSistema[]
+  policiaisParticipantes PolicialParticipante[]
+
+  @@index([unidadeId])
+  @@index([ativo])
+  @@index([deletadoEm])
+  @@map("usuarios")
+}
+
+/// Perfil — conjunto de permissões atribuíveis a usuários (RBAC)
+model Perfil {
+  id           String    @id @default(uuid())
+  nome         String    @unique
+  descricao    String?
+  ativo        Boolean   @default(true)
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime? @map("deletado_em")
+
+  usuarioPerfis    UsuarioPerfil[]
+  perfilPermissoes PerfilPermissao[]
+
+  @@index([deletadoEm])
+  @@map("perfis")
+}
+
+/// Permissão atômica do sistema (ex: criar_atendimento, ver_relatorio)
+model Permissao {
+  id           String    @id @default(uuid())
+  codigo       String    @unique
+  descricao    String?
+  modulo       String
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime? @map("deletado_em")
+
+  perfilPermissoes PerfilPermissao[]
+
+  @@index([modulo])
+  @@index([deletadoEm])
+  @@map("permissoes")
+}
+
+/// Tabela associativa N:N entre Usuario e Perfil
+model UsuarioPerfil {
+  usuarioId String   @map("usuario_id")
+  perfilId  String   @map("perfil_id")
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  perfil  Perfil  @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, perfilId])
+  @@map("usuario_perfis")
+}
+
+/// Tabela associativa N:N entre Perfil e Permissao
+model PerfilPermissao {
+  perfilId    String   @map("perfil_id")
+  permissaoId String   @map("permissao_id")
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  perfil    Perfil    @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  permissao Permissao @relation(fields: [permissaoId], references: [id], onDelete: Cascade)
+
+  @@id([perfilId, permissaoId])
+  @@map("perfil_permissoes")
+}
+
+/// Sessão ativa de um usuário (login)
+model Sessao {
+  id            String       @id @default(uuid())
+  token         String       @unique
+  status        StatusSessao @default(ATIVA)
+  ipOrigem      String?      @map("ip_origem")
+  userAgent     String?      @map("user_agent")
+  dispositivoId String?      @map("dispositivo_id")
+  criadoEm      DateTime     @default(now()) @map("criado_em")
+  expiradoEm    DateTime?    @map("expirado_em")
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  refreshTokens RefreshToken[]
+
+  @@index([usuarioId])
+  @@index([status])
+  @@map("sessoes")
+}
+
+/// Refresh token para renovação de access token JWT
+model RefreshToken {
+  id       String   @id @default(uuid())
+  token    String   @unique
+  expiraEm DateTime @map("expira_em")
+  criadoEm DateTime @default(now()) @map("criado_em")
+  revogado Boolean  @default(false)
+
+  sessaoId String @map("sessao_id")
+  sessao   Sessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+
+  @@index([sessaoId])
+  @@index([revogado])
+  @@map("refresh_tokens")
+}
+
+// ============================================================================
+// DOMÍNIO 2: ESTRUTURA ORGANIZACIONAL
+// ============================================================================
+
+/// Unidade — tabela supertype que unifica Delegacia, Instituto e Departamento
+model Unidade {
+  id           String      @id @default(uuid())
+  nome         String
+  sigla        String?
+  tipo         TipoUnidade
+  endereco     String?
+  bairro       String?
+  cep          String?
+  telefone     String?
+  email        String?
+  ativo        Boolean     @default(true)
+  criadoEm     DateTime    @default(now()) @map("criado_em")
+  atualizadoEm DateTime    @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime?   @map("deletado_em")
+
+  municipioId String    @map("municipio_id")
+  municipio   Municipio @relation(fields: [municipioId], references: [id])
+
+  delegacia    Delegacia?
+  instituto    Instituto?
+  departamento Departamento?
+  usuarios     Usuario[]
+  equipes      Equipe[]
+
+  @@index([municipioId])
+  @@index([tipo])
+  @@index([deletadoEm])
+  @@map("unidades")
+}
+
+/// Delegacia — unidade territorial da Polícia Civil
+model Delegacia {
+  id            String    @id @default(uuid())
+  circunscricao String?
+  titulo        String?
+  criadoEm      DateTime  @default(now()) @map("criado_em")
+  atualizadoEm  DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm    DateTime? @map("deletado_em")
+
+  unidadeId String  @unique @map("unidade_id")
+  unidade   Unidade @relation(fields: [unidadeId], references: [id], onDelete: Cascade)
+
+  ocorrencias Ocorrencia[]
+
+  @@index([deletadoEm])
+  @@map("delegacias")
+}
+
+/// Instituto — unidade pericial (IML, IC, IITB, etc.)
+model Instituto {
+  id            String    @id @default(uuid())
+  especialidade String?
+  criadoEm      DateTime  @default(now()) @map("criado_em")
+  atualizadoEm  DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm    DateTime? @map("deletado_em")
+
+  unidadeId String  @unique @map("unidade_id")
+  unidade   Unidade @relation(fields: [unidadeId], references: [id], onDelete: Cascade)
+
+  @@index([deletadoEm])
+  @@map("institutos")
+}
+
+/// Departamento — unidade administrativa/especializada (DHPP, DPM, etc.)
+model Departamento {
+  id           String    @id @default(uuid())
+  sigla        String?
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime? @map("deletado_em")
+
+  unidadeId String  @unique @map("unidade_id")
+  unidade   Unidade @relation(fields: [unidadeId], references: [id], onDelete: Cascade)
+
+  @@index([deletadoEm])
+  @@map("departamentos")
+}
+
+/// Município de Pernambuco — tabela de domínio para endereçamento
+model Municipio {
+  id         String   @id @default(uuid())
+  nome       String
+  uf         String   @default("PE")
+  codigoIbge String?  @unique @map("codigo_ibge")
+  criadoEm   DateTime @default(now()) @map("criado_em")
+
+  unidades          Unidade[]
+  ocorrencias       Ocorrencia[]
+  pessoasEnvolvidas PessoaEnvolvida[]
+
+  @@index([nome])
+  @@index([uf])
+  @@map("municipios")
+}
+
+// ============================================================================
+// DOMÍNIO 3: OCORRÊNCIAS E ATENDIMENTOS
+// ============================================================================
+
+/// Ocorrência policial — registro formal (equivalente ao BO)
+model Ocorrencia {
+  id             String           @id @default(uuid())
+  numeroBo       String           @unique @map("numero_bo")
+  status         StatusOcorrencia @default(ABERTA)
+  dataOcorrencia DateTime         @default(now()) @map("data_ocorrencia")
+  dataConclusao  DateTime?        @map("data_conclusao")
+  descricao      String
+  observacoes    String?
+  criadoEm       DateTime         @default(now()) @map("criado_em")
+  atualizadoEm   DateTime         @updatedAt @map("atualizado_em")
+  deletadoEm     DateTime?        @map("deletado_em")
+
+  municipioId String    @map("municipio_id")
+  municipio   Municipio @relation(fields: [municipioId], references: [id])
+
+  delegaciaId String    @map("delegacia_id")
+  delegacia   Delegacia @relation(fields: [delegaciaId], references: [id])
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  atendimentosLocais AtendimentoLocal[]
+  pessoasEnvolvidas  PessoaEnvolvida[]
+  linhasTempo        LinhaTempo[]
+
+  @@index([numeroBo])
+  @@index([municipioId])
+  @@index([delegaciaId])
+  @@index([usuarioId])
+  @@index([status])
+  @@index([dataOcorrencia])
+  @@index([deletadoEm])
+  @@map("ocorrencias")
+}
+
+/// Atendimento pericial em local de crime (sucede o modelo Atendimento original)
+model AtendimentoLocal {
+  id             String            @id @default(uuid())
+  numeroRegistro Int               @unique @default(autoincrement()) @map("numero_registro")
+  status         StatusAtendimento @default(ABERTO)
+  tipoLocal      TipoLocal         @map("tipo_local")
+  endereco       String
+  numero         String?
+  complemento    String?
+  bairro         String
+  cidade         String
+  estado         String            @default("PE")
+  cep            String?
+  latitude       Float?
+  longitude      Float?
+  descricao      String
+  observacoes    String?
+  dataOcorrencia DateTime          @default(now()) @map("data_ocorrencia")
+  dataConclusao  DateTime?         @map("data_conclusao")
+  criadoEm       DateTime          @default(now()) @map("criado_em")
+  atualizadoEm   DateTime          @updatedAt @map("atualizado_em")
+  deletadoEm     DateTime?         @map("deletado_em")
+  versao         Int               @default(1)
+
+  // Relacionamentos principais
+  ocorrenciaId String     @map("ocorrencia_id")
+  ocorrencia   Ocorrencia @relation(fields: [ocorrenciaId], references: [id])
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  equipeId String? @map("equipe_id")
+  equipe   Equipe? @relation(fields: [equipeId], references: [id])
+
+  // Subcoleções do atendimento
+  vestigios              Vestigio[]
+  objetos                Objeto[]
+  armas                  Arma[]
+  municoes               Municao[]
+  drogas                 Droga[]
+  veiculos               Veiculo[]
+  fotografias            Fotografia[]
+  videos                 Video[]
+  audios                 Audio[]
+  documentosAnexos       DocumentoAnexo[]
+  policiaisParticipantes PolicialParticipante[]
+  assinaturas            Assinatura[]
+  linhasTempo            LinhaTempo[]
+  historicosAlteracao    HistoricoAlteracao[]
+
+  @@index([numeroRegistro])
+  @@index([ocorrenciaId])
+  @@index([equipeId])
+  @@index([usuarioId])
+  @@index([status])
+  @@index([dataOcorrencia])
+  @@index([deletadoEm])
+  @@map("atendimentos_local")
+}
+
+// ============================================================================
+// DOMÍNIO 4: EQUIPES E PESSOAL
+// ============================================================================
+
+/// Equipe de atendimento — grupo de policiais/peritos
+model Equipe {
+  id           String       @id @default(uuid())
+  nome         String
+  tipo         TipoEquipe
+  status       StatusEquipe @default(ATIVA)
+  criadoEm     DateTime     @default(now()) @map("criado_em")
+  atualizadoEm DateTime     @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime?    @map("deletado_em")
+
+  unidadeId String  @map("unidade_id")
+  unidade   Unidade @relation(fields: [unidadeId], references: [id])
+
+  equipeUsuarios     EquipeUsuario[]
+  atendimentosLocais AtendimentoLocal[]
+
+  @@index([unidadeId])
+  @@index([tipo])
+  @@index([status])
+  @@index([deletadoEm])
+  @@map("equipes")
+}
+
+/// Tabela associativa N:N entre Equipe e Usuario com função na equipe
+model EquipeUsuario {
+  equipeId  String       @map("equipe_id")
+  usuarioId String       @map("usuario_id")
+  funcao    FuncaoEquipe @default(AGENTE)
+  criadoEm  DateTime     @default(now()) @map("criado_em")
+
+  equipe  Equipe  @relation(fields: [equipeId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+
+  @@id([equipeId, usuarioId])
+  @@index([usuarioId])
+  @@map("equipe_usuarios")
+}
+
+/// Pessoa envolvida na ocorrência (vítima, testemunha, suspeito, etc.)
+model PessoaEnvolvida {
+  id               String           @id @default(uuid())
+  nome             String
+  cpf              String?
+  rg               String?
+  sexo             Sexo             @default(NAO_INFORMADO)
+  dataNascimento   DateTime?        @map("data_nascimento")
+  telefone         String?
+  endereco         String?
+  bairro           String?
+  cep              String?
+  tipoEnvolvimento TipoEnvolvimento @map("tipo_envolvimento")
+  depoimento       String?
+  criadoEm         DateTime         @default(now()) @map("criado_em")
+  atualizadoEm     DateTime         @updatedAt @map("atualizado_em")
+  deletadoEm       DateTime?        @map("deletado_em")
+
+  ocorrenciaId String     @map("ocorrencia_id")
+  ocorrencia   Ocorrencia @relation(fields: [ocorrenciaId], references: [id])
+
+  municipioId String?    @map("municipio_id")
+  municipio   Municipio? @relation(fields: [municipioId], references: [id])
+
+  @@index([ocorrenciaId])
+  @@index([cpf])
+  @@index([municipioId])
+  @@index([tipoEnvolvimento])
+  @@index([deletadoEm])
+  @@map("pessoas_envolvidas")
+}
+
+/// Policial participante do atendimento (além da equipe formal)
+model PolicialParticipante {
+  id          String   @id @default(uuid())
+  nome        String
+  matricula   String?
+  instituicao String?
+  funcao      String?
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  atendimentoLocalId String           @map("atendimento_local_id")
+  atendimentoLocal   AtendimentoLocal @relation(fields: [atendimentoLocalId], references: [id])
+
+  usuarioId String?  @map("usuario_id")
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@index([atendimentoLocalId])
+  @@index([usuarioId])
+  @@map("policiais_participantes")
+}
+
+// ============================================================================
+// DOMÍNIO 5: VESTÍGIOS E CADEIA DE CUSTÓDIA
+// ============================================================================
+
+/// Classificação de tipos de vestígio (biológico, químico, balístico, etc.)
+model TipoVestigio {
+  id           String    @id @default(uuid())
+  nome         String    @unique
+  descricao    String?
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime? @map("deletado_em")
+
+  vestigios Vestigio[]
+
+  @@index([deletadoEm])
+  @@map("tipos_vestigio")
+}
+
+/// Registro de acondicionamento de vestígio (embalagem, lacre)
+model Acondicionamento {
+  id          String               @id @default(uuid())
+  tipo        TipoAcondicionamento
+  numeroLacre String?              @map("numero_lacre")
+  descricao   String?
+  criadoEm    DateTime             @default(now()) @map("criado_em")
+
+  vestigios Vestigio[]
+
+  @@map("acondicionamentos")
+}
+
+/// Destino possível de um vestígio na cadeia de custódia
+model DestinoVestigio {
+  id        String   @id @default(uuid())
+  nome      String   @unique
+  descricao String?
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  cadeiasCustodia CadeiaCustodia[]
+
+  @@map("destinos_vestigio")
+}
+
+/// Vestígio coletado no local de crime
+model Vestigio {
+  id             String    @id @default(uuid())
+  numeroCustodia String    @unique @map("numero_custodia")
+  descricao      String
+  quantidade     Int       @default(1)
+  localColeta    String?   @map("local_coleta")
+  observacoes    String?
+  criadoEm       DateTime  @default(now()) @map("criado_em")
+  atualizadoEm   DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm     DateTime? @map("deletado_em")
+  versao         Int       @default(1)
+
+  atendimentoLocalId String           @map("atendimento_local_id")
+  atendimentoLocal   AtendimentoLocal @relation(fields: [atendimentoLocalId], references: [id])
+
+  tipoVestigioId String       @map("tipo_vestigio_id")
+  tipoVestigio   TipoVestigio @relation(fields: [tipoVestigioId], references: [id])
+
+  acondicionamentoId String?           @map("acondicionamento_id")
+  acondicionamento   Acondicionamento? @relation(fields: [acondicionamentoId], references: [id])
+
+  cadeiasCustodia CadeiaCustodia[]
+  fotografias     Fotografia[]
+
+  @@index([atendimentoLocalId])
+  @@index([tipoVestigioId])
+  @@index([acondicionamentoId])
+  @@index([numeroCustodia])
+  @@index([deletadoEm])
+  @@map("vestigios")
+}
+
+/// Registro da cadeia de custódia — cada movimentação de um vestígio (append-only)
+model CadeiaCustodia {
+  id          String       @id @default(uuid())
+  status      StatusCadeia
+  descricao   String
+  observacoes String?
+  dataHora    DateTime     @default(now()) @map("data_hora")
+  criadoEm    DateTime     @default(now()) @map("criado_em")
+
+  vestigioId String   @map("vestigio_id")
+  vestigio   Vestigio @relation(fields: [vestigioId], references: [id])
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  destinoVestigioId String?          @map("destino_vestigio_id")
+  destinoVestigio   DestinoVestigio? @relation(fields: [destinoVestigioId], references: [id])
+
+  assinaturas Assinatura[]
+
+  @@index([vestigioId])
+  @@index([usuarioId])
+  @@index([dataHora])
+  @@index([status])
+  @@map("cadeia_custodia")
+}
+
+// ============================================================================
+// DOMÍNIO 6: OBJETOS E ITENS APREENDIDOS
+// ============================================================================
+
+/// Categoria de objeto apreendido
+model CategoriaObjetoModel {
+  id           String    @id @default(uuid())
+  nome         String    @unique
+  descricao    String?
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime? @map("deletado_em")
+
+  objetos Objeto[]
+
+  @@index([deletadoEm])
+  @@map("categorias_objeto")
+}
+
+/// Objeto genérico apreendido no local de crime
+model Objeto {
+  id           String    @id @default(uuid())
+  descricao    String
+  quantidade   Int       @default(1)
+  observacoes  String?
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime? @map("deletado_em")
+
+  atendimentoLocalId String           @map("atendimento_local_id")
+  atendimentoLocal   AtendimentoLocal @relation(fields: [atendimentoLocalId], references: [id])
+
+  categoriaObjetoId String               @map("categoria_objeto_id")
+  categoriaObjeto   CategoriaObjetoModel @relation(fields: [categoriaObjetoId], references: [id])
+
+  fotografias Fotografia[]
+
+  @@index([atendimentoLocalId])
+  @@index([categoriaObjetoId])
+  @@index([deletadoEm])
+  @@map("objetos")
+}
+
+/// Tipo de arma para classificação
+model TipoArmaModel {
+  id           String    @id @default(uuid())
+  nome         String    @unique
+  descricao    String?
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime? @map("deletado_em")
+
+  armas Arma[]
+
+  @@index([deletadoEm])
+  @@map("tipos_arma")
+}
+
+/// Arma apreendida no local de crime
+model Arma {
+  id           String    @id @default(uuid())
+  numeroSerie  String?   @map("numero_serie")
+  marca        String?
+  modelo       String?
+  calibre      String?
+  observacoes  String?
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime? @map("deletado_em")
+
+  atendimentoLocalId String           @map("atendimento_local_id")
+  atendimentoLocal   AtendimentoLocal @relation(fields: [atendimentoLocalId], references: [id])
+
+  tipoArmaId String        @map("tipo_arma_id")
+  tipoArma   TipoArmaModel @relation(fields: [tipoArmaId], references: [id])
+
+  fotografias Fotografia[]
+
+  @@index([atendimentoLocalId])
+  @@index([tipoArmaId])
+  @@index([numeroSerie])
+  @@index([deletadoEm])
+  @@map("armas")
+}
+
+/// Tipo de munição para classificação
+model TipoMunicaoModel {
+  id           String    @id @default(uuid())
+  nome         String    @unique
+  descricao    String?
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime? @map("deletado_em")
+
+  municoes Municao[]
+
+  @@index([deletadoEm])
+  @@map("tipos_municao")
+}
+
+/// Munição apreendida no local de crime
+model Municao {
+  id           String    @id @default(uuid())
+  quantidade   Int       @default(1)
+  marca        String?
+  lote         String?
+  observacoes  String?
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime? @map("deletado_em")
+
+  atendimentoLocalId String           @map("atendimento_local_id")
+  atendimentoLocal   AtendimentoLocal @relation(fields: [atendimentoLocalId], references: [id])
+
+  tipoMunicaoId String           @map("tipo_municao_id")
+  tipoMunicao   TipoMunicaoModel @relation(fields: [tipoMunicaoId], references: [id])
+
+  fotografias Fotografia[]
+
+  @@index([atendimentoLocalId])
+  @@index([tipoMunicaoId])
+  @@index([deletadoEm])
+  @@map("municoes")
+}
+
+/// Tipo de droga para classificação
+model TipoDrogaModel {
+  id           String    @id @default(uuid())
+  nome         String    @unique
+  descricao    String?
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime? @map("deletado_em")
+
+  drogas Droga[]
+
+  @@index([deletadoEm])
+  @@map("tipos_droga")
+}
+
+/// Droga/entorpecente apreendido no local de crime
+model Droga {
+  id             String    @id @default(uuid())
+  pesoGramas     Float?    @map("peso_gramas")
+  unidadeMedida  String?   @map("unidade_medida")
+  apresentacao   String?
+  purezaEstimada String?   @map("pureza_estimada")
+  observacoes    String?
+  criadoEm       DateTime  @default(now()) @map("criado_em")
+  atualizadoEm   DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm     DateTime? @map("deletado_em")
+
+  atendimentoLocalId String           @map("atendimento_local_id")
+  atendimentoLocal   AtendimentoLocal @relation(fields: [atendimentoLocalId], references: [id])
+
+  tipoDrogaId String         @map("tipo_droga_id")
+  tipoDroga   TipoDrogaModel @relation(fields: [tipoDrogaId], references: [id])
+
+  fotografias Fotografia[]
+
+  @@index([atendimentoLocalId])
+  @@index([tipoDrogaId])
+  @@index([deletadoEm])
+  @@map("drogas")
+}
+
+/// Veículo relacionado à ocorrência
+model Veiculo {
+  id            String    @id @default(uuid())
+  placa         String?
+  chassi        String?
+  renavam       String?
+  marca         String?
+  modelo        String?
+  cor           String?
+  anoFabricacao Int?      @map("ano_fabricacao")
+  anoModelo     Int?      @map("ano_modelo")
+  observacoes   String?
+  criadoEm      DateTime  @default(now()) @map("criado_em")
+  atualizadoEm  DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm    DateTime? @map("deletado_em")
+
+  atendimentoLocalId String           @map("atendimento_local_id")
+  atendimentoLocal   AtendimentoLocal @relation(fields: [atendimentoLocalId], references: [id])
+
+  fotografias Fotografia[]
+
+  @@index([atendimentoLocalId])
+  @@index([placa])
+  @@index([chassi])
+  @@index([deletadoEm])
+  @@map("veiculos")
+}
+
+// ============================================================================
+// DOMÍNIO 7: MÍDIAS (FOTOGRAFIAS, VÍDEOS, ÁUDIOS, DOCUMENTOS)
+// ============================================================================
+
+/// Tag para categorização de mídias
+model MidiaTag {
+  id           String    @id @default(uuid())
+  nome         String    @unique
+  cor          String?
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+  deletadoEm   DateTime? @map("deletado_em")
+
+  midiaMidiaTags MidiaMidiaTag[]
+
+  @@index([deletadoEm])
+  @@map("midia_tags")
+}
+
+/// Tabela associativa N:N entre mídias e tags (polimórfica)
+model MidiaMidiaTag {
+  id         String   @id @default(uuid())
+  midiaTagId String   @map("midia_tag_id")
+  midiaTag   MidiaTag @relation(fields: [midiaTagId], references: [id], onDelete: Cascade)
+  criadoEm   DateTime @default(now()) @map("criado_em")
+
+  // FKs opcionais — exatamente uma deve ser preenchida (validar via CHECK constraint ou aplicação)
+  fotografiaId     String?         @map("fotografia_id")
+  fotografia       Fotografia?     @relation(fields: [fotografiaId], references: [id], onDelete: Cascade)
+  videoId          String?         @map("video_id")
+  video            Video?          @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  audioId          String?         @map("audio_id")
+  audio            Audio?          @relation(fields: [audioId], references: [id], onDelete: Cascade)
+  documentoAnexoId String?         @map("documento_anexo_id")
+  documentoAnexo   DocumentoAnexo? @relation(fields: [documentoAnexoId], references: [id], onDelete: Cascade)
+
+  @@index([midiaTagId])
+  @@index([fotografiaId])
+  @@index([videoId])
+  @@index([audioId])
+  @@index([documentoAnexoId])
+  @@map("midia_midia_tags")
+}
+
+/// Fotografia registrada no atendimento
+model Fotografia {
+  id                  String                   @id @default(uuid())
+  arquivoUrl          String                   @map("arquivo_url")
+  thumbnailUrl        String?                  @map("thumbnail_url")
+  descricao           String?
+  resolucao           String?
+  tamanhoBytes        Int?                     @map("tamanho_bytes")
+  formato             String?
+  coordenadas         Json?
+  dataHora            DateTime                 @default(now()) @map("data_hora")
+  statusProcessamento StatusProcessamentoMidia @default(PENDENTE) @map("status_processamento")
+  criadoEm            DateTime                 @default(now()) @map("criado_em")
+  atualizadoEm        DateTime                 @updatedAt @map("atualizado_em")
+  deletadoEm          DateTime?                @map("deletado_em")
+
+  atendimentoLocalId String           @map("atendimento_local_id")
+  atendimentoLocal   AtendimentoLocal @relation(fields: [atendimentoLocalId], references: [id])
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  // FKs opcionais para entidades relacionadas
+  vestigioId String?   @map("vestigio_id")
+  vestigio   Vestigio? @relation(fields: [vestigioId], references: [id])
+  objetoId   String?   @map("objeto_id")
+  objeto     Objeto?   @relation(fields: [objetoId], references: [id])
+  armaId     String?   @map("arma_id")
+  arma       Arma?     @relation(fields: [armaId], references: [id])
+  municaoId  String?   @map("municao_id")
+  municao    Municao?  @relation(fields: [municaoId], references: [id])
+  drogaId    String?   @map("droga_id")
+  droga      Droga?    @relation(fields: [drogaId], references: [id])
+  veiculoId  String?   @map("veiculo_id")
+  veiculo    Veiculo?  @relation(fields: [veiculoId], references: [id])
+
+  midiaMidiaTags MidiaMidiaTag[]
+
+  @@index([atendimentoLocalId])
+  @@index([usuarioId])
+  @@index([vestigioId])
+  @@index([objetoId])
+  @@index([armaId])
+  @@index([municaoId])
+  @@index([drogaId])
+  @@index([veiculoId])
+  @@index([deletadoEm])
+  @@map("fotografias")
+}
+
+/// Vídeo registrado no atendimento
+model Video {
+  id                  String                   @id @default(uuid())
+  arquivoUrl          String                   @map("arquivo_url")
+  thumbnailUrl        String?                  @map("thumbnail_url")
+  descricao           String?
+  duracaoSegundos     Int?                     @map("duracao_segundos")
+  resolucao           String?
+  tamanhoBytes        Int?                     @map("tamanho_bytes")
+  formato             String?
+  statusProcessamento StatusProcessamentoMidia @default(PENDENTE) @map("status_processamento")
+  criadoEm            DateTime                 @default(now()) @map("criado_em")
+  atualizadoEm        DateTime                 @updatedAt @map("atualizado_em")
+  deletadoEm          DateTime?                @map("deletado_em")
+
+  atendimentoLocalId String           @map("atendimento_local_id")
+  atendimentoLocal   AtendimentoLocal @relation(fields: [atendimentoLocalId], references: [id])
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  midiaMidiaTags MidiaMidiaTag[]
+
+  @@index([atendimentoLocalId])
+  @@index([usuarioId])
+  @@index([deletadoEm])
+  @@map("videos")
+}
+
+/// Áudio registrado no atendimento
+model Audio {
+  id                  String                   @id @default(uuid())
+  arquivoUrl          String                   @map("arquivo_url")
+  descricao           String?
+  duracaoSegundos     Int?                     @map("duracao_segundos")
+  tamanhoBytes        Int?                     @map("tamanho_bytes")
+  formato             String?
+  transcricao         String?
+  statusProcessamento StatusProcessamentoMidia @default(PENDENTE) @map("status_processamento")
+  criadoEm            DateTime                 @default(now()) @map("criado_em")
+  atualizadoEm        DateTime                 @updatedAt @map("atualizado_em")
+  deletadoEm          DateTime?                @map("deletado_em")
+
+  atendimentoLocalId String           @map("atendimento_local_id")
+  atendimentoLocal   AtendimentoLocal @relation(fields: [atendimentoLocalId], references: [id])
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  midiaMidiaTags MidiaMidiaTag[]
+
+  @@index([atendimentoLocalId])
+  @@index([usuarioId])
+  @@index([deletadoEm])
+  @@map("audios")
+}
+
+/// Documento digitalizado anexado ao atendimento
+model DocumentoAnexo {
+  id                  String                   @id @default(uuid())
+  arquivoUrl          String                   @map("arquivo_url")
+  titulo              String
+  descricao           String?
+  tipoDocumento       String?                  @map("tipo_documento")
+  tamanhoBytes        Int?                     @map("tamanho_bytes")
+  formato             String?
+  numPaginas          Int?                     @map("num_paginas")
+  statusProcessamento StatusProcessamentoMidia @default(PENDENTE) @map("status_processamento")
+  criadoEm            DateTime                 @default(now()) @map("criado_em")
+  atualizadoEm        DateTime                 @updatedAt @map("atualizado_em")
+  deletadoEm          DateTime?                @map("deletado_em")
+
+  atendimentoLocalId String           @map("atendimento_local_id")
+  atendimentoLocal   AtendimentoLocal @relation(fields: [atendimentoLocalId], references: [id])
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  midiaMidiaTags MidiaMidiaTag[]
+  assinaturas    Assinatura[]
+
+  @@index([atendimentoLocalId])
+  @@index([usuarioId])
+  @@index([deletadoEm])
+  @@map("documentos_anexos")
+}
+
+// ============================================================================
+// DOMÍNIO 8: ASSINATURAS E VALIDAÇÃO
+// ============================================================================
+
+/// Tipo de assinatura digital
+model TipoAssinaturaModel {
+  id        String   @id @default(uuid())
+  nome      String   @unique
+  descricao String?
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  assinaturas Assinatura[]
+
+  @@map("tipos_assinatura")
+}
+
+/// Assinatura digital de um registro (validação jurídica)
+model Assinatura {
+  id       String   @id @default(uuid())
+  hash     String
+  dados    Json?
+  dataHora DateTime @default(now()) @map("data_hora")
+  ipOrigem String?  @map("ip_origem")
+  criadoEm DateTime @default(now()) @map("criado_em")
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  tipoAssinaturaId String              @map("tipo_assinatura_id")
+  tipoAssinatura   TipoAssinaturaModel @relation(fields: [tipoAssinaturaId], references: [id])
+
+  // FKs opcionais para o objeto assinado
+  atendimentoLocalId String?           @map("atendimento_local_id")
+  atendimentoLocal   AtendimentoLocal? @relation(fields: [atendimentoLocalId], references: [id])
+  cadeiaCustodiaId   String?           @map("cadeia_custodia_id")
+  cadeiaCustodia     CadeiaCustodia?   @relation(fields: [cadeiaCustodiaId], references: [id])
+  documentoAnexoId   String?           @map("documento_anexo_id")
+  documentoAnexo     DocumentoAnexo?   @relation(fields: [documentoAnexoId], references: [id])
+
+  @@index([usuarioId])
+  @@index([tipoAssinaturaId])
+  @@index([atendimentoLocalId])
+  @@index([cadeiaCustodiaId])
+  @@index([documentoAnexoId])
+  @@index([dataHora])
+  @@map("assinaturas")
+}
+
+// ============================================================================
+// DOMÍNIO 9: AUDITORIA E LOGS
+// ============================================================================
+
+/// Registro de auditoria de todas as operações sensíveis (append-only)
+model Auditoria {
+  id            String        @id @default(uuid())
+  acao          AcaoAuditoria
+  entidade      String
+  entidadeId    String?       @map("entidade_id")
+  valorAnterior Json?         @map("valor_anterior")
+  valorNovo     Json?         @map("valor_novo")
+  ipOrigem      String?       @map("ip_origem")
+  userAgent     String?       @map("user_agent")
+  dataHora      DateTime      @default(now()) @map("data_hora")
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  dispositivoId String?      @map("dispositivo_id")
+  dispositivo   Dispositivo? @relation(fields: [dispositivoId], references: [id])
+
+  @@index([usuarioId])
+  @@index([acao])
+  @@index([entidade, entidadeId])
+  @@index([dataHora])
+  @@index([dispositivoId])
+  @@map("auditorias")
+}
+
+/// Log técnico do sistema (erros, warnings, info)
+model LogSistema {
+  id       String   @id @default(uuid())
+  nivel    NivelLog
+  mensagem String
+  contexto Json?
+  origem   String?
+  dataHora DateTime @default(now()) @map("data_hora")
+
+  usuarioId String?  @map("usuario_id")
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@index([nivel])
+  @@index([dataHora])
+  @@index([usuarioId])
+  @@map("logs_sistema")
+}
+
+/// Histórico de alterações em registros (versionamento com snapshots JSONB)
+model HistoricoAlteracao {
+  id          String   @id @default(uuid())
+  entidade    String
+  entidadeId  String   @map("entidade_id")
+  dadosAntes  Json     @map("dados_antes")
+  dadosDepois Json     @map("dados_depois")
+  versao      Int
+  motivo      String?
+  dataHora    DateTime @default(now()) @map("data_hora")
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  atendimentoLocalId String?           @map("atendimento_local_id")
+  atendimentoLocal   AtendimentoLocal? @relation(fields: [atendimentoLocalId], references: [id])
+
+  @@index([entidade, entidadeId])
+  @@index([usuarioId])
+  @@index([dataHora])
+  @@index([atendimentoLocalId])
+  @@map("historico_alteracoes")
+}
+
+/// Evento da linha do tempo de um atendimento/ocorrência
+model LinhaTempo {
+  id        String   @id @default(uuid())
+  evento    String
+  descricao String?
+  metadata  Json?
+  dataHora  DateTime @default(now()) @map("data_hora")
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  ocorrenciaId String     @map("ocorrencia_id")
+  ocorrencia   Ocorrencia @relation(fields: [ocorrenciaId], references: [id])
+
+  atendimentoLocalId String?           @map("atendimento_local_id")
+  atendimentoLocal   AtendimentoLocal? @relation(fields: [atendimentoLocalId], references: [id])
+
+  @@index([ocorrenciaId])
+  @@index([atendimentoLocalId])
+  @@index([usuarioId])
+  @@index([dataHora])
+  @@map("linhas_tempo")
+}
+
+// ============================================================================
+// DOMÍNIO 10: CONFIGURAÇÕES E INFRAESTRUTURA
+// ============================================================================
+
+/// Configurações do sistema (chave-valor com tipagem JSONB)
+model Configuracao {
+  id           String   @id @default(uuid())
+  chave        String   @unique
+  valor        Json
+  descricao    String?
+  tipo         String   @default("string")
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  @@map("configuracoes")
+}
+
+/// Dispositivo móvel autorizado a operar offline
+model Dispositivo {
+  id                 String    @id @default(uuid())
+  deviceId           String    @unique @map("device_id")
+  nome               String?
+  modelo             String?
+  sistemaOperacional String?   @map("sistema_operacional")
+  versaoApp          String?   @map("versao_app")
+  ultimoAcesso       DateTime? @map("ultimo_acesso")
+  ativo              Boolean   @default(true)
+  criadoEm           DateTime  @default(now()) @map("criado_em")
+  atualizadoEm       DateTime  @updatedAt @map("atualizado_em")
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  sincronizacoesOffline SincronizacaoOffline[]
+  auditorias            Auditoria[]
+
+  @@index([usuarioId])
+  @@index([deviceId])
+  @@index([ativo])
+  @@map("dispositivos")
+}
+
+/// Registro de sincronização de dados offline (pull ou push)
+model SincronizacaoOffline {
+  id                  String              @id @default(uuid())
+  tipo                String
+  dataInicio          DateTime            @map("data_inicio")
+  dataFim             DateTime?           @map("data_fim")
+  status              StatusSincronizacao
+  registrosEnviados   Int                 @default(0) @map("registros_enviados")
+  registrosRecebidos  Int                 @default(0) @map("registros_recebidos")
+  conflitosDetectados Int                 @default(0) @map("conflitos_detectados")
+  criadoEm            DateTime            @default(now()) @map("criado_em")
+
+  dispositivoId String      @map("dispositivo_id")
+  dispositivo   Dispositivo @relation(fields: [dispositivoId], references: [id])
+
+  filaSincronizacao FilaSincronizacao[]
+
+  @@index([dispositivoId])
+  @@index([status])
+  @@index([dataInicio])
+  @@map("sincronizacao_offline")
+}
+
+/// Fila de operações pendentes de sincronização
+model FilaSincronizacao {
+  id              String              @id @default(uuid())
+  entidade        String
+  entidadeId      String              @map("entidade_id")
+  acao            String
+  dados           Json
+  dataOperacao    DateTime            @map("data_operacao")
+  status          StatusSincronizacao @default(PENDENTE)
+  tentativas      Int                 @default(0)
+  ultimaTentativa DateTime?           @map("ultima_tentativa")
+  mensagemErro    String?             @map("mensagem_erro")
+  criadoEm        DateTime            @default(now()) @map("criado_em")
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  sincronizacaoOfflineId String?               @map("sincronizacao_offline_id")
+  sincronizacaoOffline   SincronizacaoOffline? @relation(fields: [sincronizacaoOfflineId], references: [id])
+
+  @@index([usuarioId, status])
+  @@index([status])
+  @@index([sincronizacaoOfflineId])
+  @@map("fila_sincronizacao")
+}
+
+/// Metadados de backups realizados
+model BackupRegistro {
+  id                 String    @id @default(uuid())
+  tipo               String
+  tamanhoBytes       Int?      @map("tamanho_bytes")
+  localArmazenamento String?   @map("local_armazenamento")
+  hashValidacao      String?   @map("hash_validacao")
+  status             String    @default("concluido")
+  observacoes        String?
+  dataInicio         DateTime  @map("data_inicio")
+  dataFim            DateTime? @map("data_fim")
+  criadoEm           DateTime  @default(now()) @map("criado_em")
+
+  usuarioId String  @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@index([usuarioId])
+  @@index([dataInicio])
+  @@index([status])
+  @@map("backups_registro")
+}

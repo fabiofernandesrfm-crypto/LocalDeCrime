@@ -1,0 +1,49 @@
+# --- Flutter / Dart ---
+.dart_tool/
+.packages
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+.vscode/
+*.g.dart
+*.freezed.dart
+*.lock
+*.g.yaml
+**/pubspec_overrides.yaml
+
+# --- Node / NestJS ---
+node_modules/
+dist/
+.env
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# --- Prisma ---
+prisma/*.db
+prisma/*.db-journal
+
+# --- Docker ---
+docker-compose.override.yml
+
+# --- IDE / OS ---
+*.swp
+*.swo
+*.swn
+*~
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+
+# --- Coverage ---
+coverage/
+.nyc_output/
+
+# --- Misc ---
+tmp/
+temp/

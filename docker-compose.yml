@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pcpe_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pcpe_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pcpe_secret_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-pcpe_db}
+    ports:
+      - '${POSTGRES_PORT:-5433}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-pcpe_admin} -d ${POSTGRES_DB:-pcpe_db}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pcpe_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@pcpe.gov.br}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin_secret_2026}
+    ports:
+      - '${PGADMIN_PORT:-5050}:80'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
