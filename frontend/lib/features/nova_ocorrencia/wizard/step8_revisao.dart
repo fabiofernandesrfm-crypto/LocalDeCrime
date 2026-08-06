@@ -5,12 +5,13 @@ import '../../../shared/widgets/pcpe_card.dart';
 import '../../../shared/widgets/pcpe_button.dart';
 import 'ocorrencia_wizard_data.dart';
 
-/// Etapa 9: Revisão completa da ocorrência
-class Step9Revisao extends StatelessWidget {
+/// Etapa 8: Revisão completa da ocorrência
+/// Atualizada para 9 etapas com mídias distribuídas por entidade.
+class Step8Revisao extends StatelessWidget {
   final OcorrenciaWizardData data;
   final void Function(int step) onEditSection;
 
-  const Step9Revisao({
+  const Step8Revisao({
     super.key,
     required this.data,
     required this.onEditSection,
@@ -50,6 +51,7 @@ class Step9Revisao extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+          // 1. Identificação (index 0)
           _buildReviewCard(
             title: 'Identificação da Ocorrência',
             icon: Icons.description_outlined,
@@ -57,7 +59,6 @@ class Step9Revisao extends StatelessWidget {
             children: [
               _buildField(context, 'Protocolo', data.numeroProtocolo),
               _buildField(context, 'Nº BO', data.numeroBO, emptyText: 'Não informado'),
-              _buildField(context, 'Nº Inquérito', data.numeroInquerito, emptyText: 'Não informado'),
               _buildField(context, 'Natureza', data.natureza),
               _buildField(context, 'Tipo da Ocorrência', data.tipoOcorrencia),
               _buildField(context, 'Data', data.dataOcorrencia != null
@@ -75,6 +76,7 @@ class Step9Revisao extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          // 2. Local do Crime (index 1)
           _buildReviewCard(
             title: 'Local do Crime',
             icon: Icons.location_on_outlined,
@@ -91,9 +93,12 @@ class Step9Revisao extends StatelessWidget {
               _buildField(context, 'Coordenadas', data.gpsCapturado
                   ? '${data.latitude}, ${data.longitude}'
                   : 'GPS não capturado'),
+              if (data.midiasLocal.isNotEmpty)
+                _buildField(context, 'Fotos do Local', '${data.midiasLocal.length} fotografia(s)'),
             ],
           ),
           const SizedBox(height: 12),
+          // 3. Pessoas (index 2)
           _buildReviewCard(
             title: 'Pessoas Envolvidas',
             icon: Icons.people_outline,
@@ -124,8 +129,18 @@ class Step9Revisao extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(p.nome, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                              if (p.midias.isNotEmpty) ...[
+                                const Spacer(),
+                                Icon(Icons.photo_camera, size: 14, color: PCPEColors.primary.withValues(alpha: 0.7)),
+                                const SizedBox(width: 2),
+                                Text('${p.midias.length}', style: TextStyle(fontSize: 12, color: PCPEColors.primary.withValues(alpha: 0.7))),
+                              ],
                             ],
                           ),
+                          if (p.nic.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text('NIC: ${p.nic}', style: const TextStyle(fontSize: 12, color: PCPEColors.mediumGray)),
+                          ],
                           if (p.cpf.isNotEmpty) ...[
                             const SizedBox(height: 4),
                             Text('CPF: ${p.cpf}', style: const TextStyle(fontSize: 12, color: PCPEColors.mediumGray)),
@@ -136,6 +151,7 @@ class Step9Revisao extends StatelessWidget {
                   ),
           ),
           const SizedBox(height: 12),
+          // 4. Veículos (index 3)
           _buildReviewCard(
             title: 'Veículos',
             icon: Icons.directions_car_outlined,
@@ -155,8 +171,13 @@ class Step9Revisao extends StatelessWidget {
                         children: [
                           const Icon(Icons.directions_car, size: 18, color: PCPEColors.primary),
                           const SizedBox(width: 8),
-                          Text('${v.marca} ${v.modelo}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                          const Spacer(),
+                          Expanded(child: Text('${v.marca} ${v.modelo}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+                          if (v.midias.isNotEmpty) ...[
+                            Icon(Icons.photo_camera, size: 14, color: PCPEColors.primary.withValues(alpha: 0.7)),
+                            const SizedBox(width: 2),
+                            Text('${v.midias.length}', style: TextStyle(fontSize: 12, color: PCPEColors.primary.withValues(alpha: 0.7))),
+                            const SizedBox(width: 8),
+                          ],
                           Text(v.placa, style: const TextStyle(fontSize: 12, color: PCPEColors.mediumGray)),
                         ],
                       ),
@@ -164,6 +185,7 @@ class Step9Revisao extends StatelessWidget {
                   ),
           ),
           const SizedBox(height: 12),
+          // 5. Objetos (index 4)
           _buildReviewCard(
             title: 'Objetos',
             icon: Icons.inventory_2_outlined,
@@ -178,8 +200,13 @@ class Step9Revisao extends StatelessWidget {
                       decoration: BoxDecoration(color: PCPEColors.cardGray, borderRadius: BorderRadius.circular(8)),
                       child: Row(
                         children: [
-                          Text(o.descricao, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                          const Spacer(),
+                          Expanded(child: Text(o.descricao, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+                          if (o.midias.isNotEmpty) ...[
+                            Icon(Icons.photo_camera, size: 14, color: PCPEColors.primary.withValues(alpha: 0.7)),
+                            const SizedBox(width: 2),
+                            Text('${o.midias.length}', style: TextStyle(fontSize: 12, color: PCPEColors.primary.withValues(alpha: 0.7))),
+                            const SizedBox(width: 8),
+                          ],
                           Text('x${o.quantidade}', style: const TextStyle(fontSize: 12, color: PCPEColors.mediumGray)),
                         ],
                       ),
@@ -187,6 +214,7 @@ class Step9Revisao extends StatelessWidget {
                   ),
           ),
           const SizedBox(height: 12),
+          // 6. Vestígios (index 5)
           _buildReviewCard(
             title: 'Vestígios',
             icon: Icons.biotech_outlined,
@@ -204,52 +232,22 @@ class Step9Revisao extends StatelessWidget {
                           Icon(v.coletado ? Icons.check_circle : Icons.pending, size: 16, color: v.coletado ? PCPEColors.success : PCPEColors.warning),
                           const SizedBox(width: 8),
                           Expanded(child: Text(v.descricao, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis)),
+                          if (v.midias.isNotEmpty) ...[
+                            Icon(Icons.photo_camera, size: 14, color: PCPEColors.primary.withValues(alpha: 0.7)),
+                            const SizedBox(width: 2),
+                            Text('${v.midias.length}', style: TextStyle(fontSize: 12, color: PCPEColors.primary.withValues(alpha: 0.7))),
+                          ],
                         ],
                       ),
                     )).toList(),
                   ),
           ),
           const SizedBox(height: 12),
-          _buildReviewCard(
-            title: 'Fotografias e Mídias',
-            icon: Icons.photo_camera_outlined,
-            index: 6,
-            extra: data.midias.isEmpty
-                ? const Text('Nenhuma mídia registrada',
-                    style: TextStyle(fontSize: 13, color: PCPEColors.mediumGray, fontStyle: FontStyle.italic))
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${data.midias.length} mídia(s) registrada(s)',
-                          style: const TextStyle(fontSize: 13, color: PCPEColors.success, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      ...data.midias.map((m) => Container(
-                        margin: const EdgeInsets.only(bottom: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: PCPEColors.cardGray,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(m.tipoIcon, size: 14, color: m.placeholderColor),
-                            const SizedBox(width: 8),
-                            Text(m.legenda.isNotEmpty ? m.legenda : m.tipoLabel,
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                            const Spacer(),
-                            Text(m.tipoLabel,
-                                style: TextStyle(fontSize: 11, color: m.placeholderColor)),
-                          ],
-                        ),
-                      )),
-                    ],
-                  ),
-          ),
-          const SizedBox(height: 12),
+          // 7. Narrativa (index 6)
           _buildReviewCard(
             title: 'Narrativa',
             icon: Icons.edit_note,
-            index: 7,
+            index: 6,
             children: [
               if (data.narrativa.isNotEmpty)
                 Text(data.narrativa, style: const TextStyle(fontSize: 13, height: 1.5, color: PCPEColors.darkGray), maxLines: 5, overflow: TextOverflow.ellipsis)
@@ -263,6 +261,55 @@ class Step9Revisao extends StatelessWidget {
               else
                 const Text('Não informadas', style: TextStyle(fontSize: 13, color: PCPEColors.mediumGray, fontStyle: FontStyle.italic)),
             ],
+          ),
+          // Resumo de mídias distribuídas
+          const SizedBox(height: 12),
+          PCPECard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: PCPEColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.photo_camera_outlined, size: 18, color: PCPEColors.primary),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Resumo de Fotografias',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: PCPEColors.black,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                if (!data.possuiMidias)
+                  const Text('Nenhuma fotografia registrada',
+                      style: TextStyle(fontSize: 13, color: PCPEColors.mediumGray, fontStyle: FontStyle.italic))
+                else
+                  ...data.midiasOrganizadasPorCategoria.entries.map((entry) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.folder, size: 16, color: PCPEColors.mediumGray),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(entry.key, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+                        Text('${entry.value.length} foto(s)',
+                            style: const TextStyle(fontSize: 12, color: PCPEColors.success, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  )),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
         ],
@@ -365,7 +412,7 @@ class Step9Revisao extends StatelessWidget {
         return PCPEColors.warning;
       case 'Testemunha':
         return PCPEColors.info;
-      case 'Comunicante':
+      case 'Noticiante':
         return PCPEColors.success;
       default:
         return PCPEColors.mediumGray;

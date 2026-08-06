@@ -8,14 +8,21 @@ import 'wizard/pcpe_stepper.dart';
 import 'wizard/step1_identificacao.dart';
 import 'wizard/step2_local.dart';
 import 'wizard/step3_pessoas.dart';
-import 'wizard/step4_veiculos.dart';
-import 'wizard/step5_objetos.dart';
-import 'wizard/step6_vestigios.dart';
-import 'wizard/step7_fotografias.dart';
-import 'wizard/step8_narrativa.dart';
-import 'wizard/step9_revisao.dart';
-import 'wizard/step10_finalizacao.dart';
+import 'wizard/step4_elementos_local.dart';
+import 'wizard/step7_narrativa.dart';
+import 'wizard/step8_preview_pdf.dart';
+import 'wizard/step9_finalizacao.dart';
 
+/// Tela principal do wizard de Nova Ocorrência.
+///
+/// REESTRUTURAÇÃO F17 — 7 etapas:
+/// 1. Identificação
+/// 2. Local do Crime (+ fotos do local)
+/// 3. Pessoas (+ galeria por pessoa)
+/// 4. Elementos Relacionados ao Local (Veículos + Objetos + Vestígios)
+/// 5. Narrativa
+/// 6. Pré-Visualização do PDF Oficial
+/// 7. Finalização
 class NovaOcorrenciaScreen extends StatefulWidget {
   const NovaOcorrenciaScreen({super.key});
 
@@ -92,57 +99,69 @@ class _NovaOcorrenciaScreenState extends State<NovaOcorrenciaScreen> {
   }
 
   Widget _buildStepContent() {
-    switch (_currentStep) {
-      case 0:
-        return Step1Identificacao(
-          data: _data,
-          onChanged: () => setState(() {}),
-        );
-      case 1:
-        return Step2LocalCrime(
-          data: _data,
-          onChanged: () => setState(() {}),
-        );
-      case 2:
-        return Step3Pessoas(
-          data: _data,
-          onChanged: () => setState(() {}),
-        );
-      case 3:
-        return Step4Veiculos(
-          data: _data,
-          onChanged: () => setState(() {}),
-        );
-      case 4:
-        return Step5Objetos(
-          data: _data,
-          onChanged: () => setState(() {}),
-        );
-      case 5:
-        return Step6Vestigios(
-          data: _data,
-          onChanged: () => setState(() {}),
-        );
-      case 6:
-        return Step7Fotografias(
-          data: _data,
-          onChanged: () => setState(() {}),
-        );
-      case 7:
-        return Step8Narrativa(
-          data: _data,
-          onChanged: () => setState(() {}),
-        );
-      case 8:
-        return Step9Revisao(
-          data: _data,
-          onEditSection: _goToStep,
-        );
-      case 9:
-        return Step10Finalizacao(data: _data);
-      default:
-        return const SizedBox.shrink();
-    }
+    final stepWidget = switch (_currentStep) {
+      0 => Step1Identificacao(data: _data, onChanged: () => setState(() {})),
+      1 => Step2LocalCrime(data: _data, onChanged: () => setState(() {})),
+      2 => Step3Pessoas(data: _data, onChanged: () => setState(() {})),
+      3 => Step4ElementosLocal(data: _data, onChanged: () => setState(() {})),
+      4 => Step7Narrativa(data: _data, onChanged: () => setState(() {})),
+      5 => Step8PreviewPdf(data: _data, onVoltarEdicao: () => _goToStep(1)),
+      6 => Step9Finalizacao(data: _data),
+      _ => const SizedBox.shrink(),
+    };
+
+    if (_currentStep >= 6) return stepWidget;
+
+    return Column(
+      children: [
+        _buildStepOrientation(),
+        Expanded(child: stepWidget),
+      ],
+    );
+  }
+
+  Widget _buildStepOrientation() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: PCPEColors.primarySoft,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: PCPEColors.primary.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: PCPEColors.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              'Etapa ${_currentStep + 1} de ${_data.totalSteps}',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: PCPEColors.primary,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _data.stepOrientations[_currentStep],
+              style: const TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                color: PCPEColors.darkGray,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -151,8 +170,8 @@ class _NovaOcorrenciaScreenState extends State<NovaOcorrenciaScreen> {
     final isMobile = breakpoints.isMobile;
     final isTablet = breakpoints.isTablet;
     final isDesktop = breakpoints.isDesktop;
-    final isFinalStep = _currentStep == 9;
-    final isReviewStep = _currentStep == 8;
+    final isFinalStep = _currentStep == 6;
+    final isReviewStep = _currentStep == 5;
 
     final bottomPadding = isDesktop ? 20.0 : 16.0;
     final contentPadding = isDesktop ? 24.0 : 16.0;
@@ -283,19 +302,21 @@ class _NovaOcorrenciaScreenState extends State<NovaOcorrenciaScreen> {
                     children: [
                       if (_currentStep > 0)
                         Expanded(
-                          child: PCPEButton(
-                            label: 'Voltar',
-                            icon: Icons.arrow_back,
-                            outlined: true,
-                            fullWidth: true,
-                            onPressed: _previousStep,
-                          ),
+                        child: PCPEButton(
+                          label: _currentStep > 0 && _currentStep < _data.totalSteps - 1
+                              ? _data.backButtonLabels[_currentStep]
+                              : 'Voltar',
+                          icon: Icons.arrow_back,
+                          outlined: true,
+                          fullWidth: true,
+                          onPressed: _previousStep,
                         ),
+                      ),
                       if (_currentStep > 0) const SizedBox(width: 12),
                       Expanded(
                         flex: _currentStep > 0 ? 2 : 1,
                         child: PCPEButton(
-                          label: isReviewStep ? 'Finalizar Registro' : 'Próximo',
+                          label: isReviewStep ? 'Concluir Ocorrência' : _data.nextButtonLabels[_currentStep],
                           icon: isReviewStep ? Icons.check_circle : Icons.arrow_forward,
                           fullWidth: true,
                           onPressed: isReviewStep ? _finalizarOcorrencia : _nextStep,

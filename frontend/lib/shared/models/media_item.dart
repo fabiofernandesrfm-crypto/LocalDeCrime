@@ -82,6 +82,34 @@ class MediaItem {
     return colors[id % colors.length];
   }
 
+  // ── Serialização ──────────────────────────────────────────────
+
+  /// Converte para mapa (uso em exportação PDF/JSON).
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'type': type.name,
+      'legenda': legenda,
+      'data': data.toIso8601String(),
+      'hora': hora,
+      'gps': gps,
+      'duracao_segundos': duracao?.inSeconds,
+      'file_name': fileName,
+    };
+  }
+
+  /// Estima tamanho em KB para fins de otimização.
+  double get estimativaTamanhoKB {
+    switch (type) {
+      case MediaType.photo:
+        return 500.0;
+      case MediaType.video:
+        return 5000.0;
+      case MediaType.audio:
+        return 200.0;
+    }
+  }
+
   // ── Factory helpers ───────────────────────────────────────────
 
   /// Cria um item de foto mock.

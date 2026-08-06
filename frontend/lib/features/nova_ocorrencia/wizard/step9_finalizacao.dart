@@ -5,11 +5,15 @@ import '../../../shared/widgets/pcpe_card.dart';
 import '../../../shared/widgets/pcpe_button.dart';
 import 'ocorrencia_wizard_data.dart';
 
-/// Etapa 10: Finalização
-class Step10Finalizacao extends StatelessWidget {
+/// Etapa 7: Finalização (F18 — Fluxo Oficial).
+///
+/// Somente após o salvamento oficial a ocorrência é considerada concluída.
+/// Nesta etapa o rascunho local é removido e as opções pós-conclusão
+/// são habilitadas.
+class Step9Finalizacao extends StatelessWidget {
   final OcorrenciaWizardData data;
 
-  const Step10Finalizacao({
+  const Step9Finalizacao({
     super.key,
     required this.data,
   });
@@ -23,36 +27,25 @@ class Step10Finalizacao extends StatelessWidget {
         children: [
           const SizedBox(height: 24),
           // Ícone de sucesso
-          TweenAnimationBuilder<double>(
-            duration: PCPEAnimations.slow,
-            curve: PCPEAnimations.easeOutBack,
-            tween: Tween(begin: 0.0, end: 1.0),
-            builder: (context, value, child) {
-              return Transform.scale(
-                scale: value,
-                child: child,
-              );
-            },
-            child: Container(
-              width: 100,
-              height: 100,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: PCPEColors.successLight,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: PCPEColors.success.withValues(alpha: 0.25),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.check_circle,
-                size: 56,
-                color: PCPEColors.success,
-              ),
+          Container(
+            width: 100,
+            height: 100,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: PCPEColors.successLight,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: PCPEColors.success.withValues(alpha: 0.25),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.check_circle,
+              size: 56,
+              color: PCPEColors.success,
             ),
           ),
           const SizedBox(height: 28),
@@ -70,7 +63,8 @@ class Step10Finalizacao extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'O registro foi concluído e armazenado no sistema.',
+            'O registro foi concluído e armazenado no sistema.\n'
+            'O rascunho local foi removido automaticamente.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -85,7 +79,7 @@ class Step10Finalizacao extends StatelessWidget {
             child: Column(
               children: [
                 const Text(
-                  'PROTOCOLO',
+                  'PROTOCOLO OFICIAL',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -95,7 +89,8 @@ class Step10Finalizacao extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                   decoration: BoxDecoration(
                     color: PCPEColors.primary.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(12),
@@ -122,57 +117,39 @@ class Step10Finalizacao extends StatelessWidget {
           PCPECard(
             child: Column(
               children: [
-                _buildDetailRow(Icons.calendar_today, 'Data', data.dataFinalizacao != null
-                    ? '${data.dataFinalizacao!.day.toString().padLeft(2, '0')}/${data.dataFinalizacao!.month.toString().padLeft(2, '0')}/${data.dataFinalizacao!.year}'
-                    : '—'),
+                _buildDetailRow(
+                    Icons.calendar_today,
+                    'Data',
+                    data.dataFinalizacao != null
+                        ? '${data.dataFinalizacao!.day.toString().padLeft(2, '0')}/${data.dataFinalizacao!.month.toString().padLeft(2, '0')}/${data.dataFinalizacao!.year}'
+                        : '—'),
                 const Divider(height: 24, color: PCPEColors.surfaceGray),
-                _buildDetailRow(Icons.access_time, 'Hora', data.horaFinalizacao ?? '—'),
+                _buildDetailRow(
+                    Icons.access_time, 'Hora', data.horaFinalizacao ?? '—'),
                 const Divider(height: 24, color: PCPEColors.surfaceGray),
-                _buildDetailRow(Icons.groups, 'Equipe', data.equipeResponsavel),
+                _buildDetailRow(
+                    Icons.groups, 'Equipe', data.equipeResponsavel),
                 const Divider(height: 24, color: PCPEColors.surfaceGray),
-                _buildDetailRow(Icons.person, 'Responsável', 'Dr. Carlos Eduardo'),
+                _buildDetailRow(
+                    Icons.person, 'Responsável', 'Dr. Carlos Eduardo'),
               ],
             ),
           ),
           const SizedBox(height: 32),
-          // Botões de ação
+
+          // ══════════════════════════════════════════════════════
+          // Ações Pós-Conclusão (F18)
+          // ══════════════════════════════════════════════════════
           PCPEButton(
             label: 'Visualizar Ocorrência',
             icon: Icons.visibility,
             fullWidth: true,
             height: 52,
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Row(
-                    children: [
-                      Icon(Icons.info_outline, color: PCPEColors.pureWhite, size: 18),
-                      SizedBox(width: 10),
-                      Text('Visualização da ocorrência (simulado)', style: TextStyle(fontSize: 13)),
-                    ],
-                  ),
-                  backgroundColor: PCPEColors.primary,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  margin: const EdgeInsets.all(16),
-                ),
-              );
-            },
+            onPressed: () => _showMock(context, 'Visualizar Ocorrência'),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(
-                child: PCPEButton(
-                  label: 'Nova Ocorrência',
-                  icon: Icons.add,
-                  fullWidth: true,
-                  outlined: true,
-                  height: 52,
-                  onPressed: () => context.go('/nova-ocorrencia'),
-                ),
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: PCPEButton(
                   label: 'Imprimir',
@@ -180,29 +157,73 @@ class Step10Finalizacao extends StatelessWidget {
                   fullWidth: true,
                   outlined: true,
                   height: 52,
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Row(
-                          children: [
-                            Icon(Icons.print, color: PCPEColors.pureWhite, size: 18),
-                            SizedBox(width: 10),
-                            Text('Relatório enviado para impressão (simulado)', style: TextStyle(fontSize: 13)),
-                          ],
-                        ),
-                        backgroundColor: PCPEColors.info,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        margin: const EdgeInsets.all(16),
-                      ),
-                    );
-                  },
+                  onPressed: () => _showMock(context, 'Imprimir'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: PCPEButton(
+                  label: 'Exportar',
+                  icon: Icons.file_download_outlined,
+                  fullWidth: true,
+                  outlined: true,
+                  height: 52,
+                  onPressed: () => _showMock(context, 'Exportar'),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          PCPEButton(
+            label: 'Gerar PDF Oficial',
+            icon: Icons.picture_as_pdf_outlined,
+            fullWidth: true,
+            height: 52,
+            onPressed: () => _showMock(context, 'Gerar PDF Oficial'),
+          ),
+          const SizedBox(height: 12),
+          PCPEButton(
+            label: 'Enviar PDF ao SPP',
+            icon: Icons.send_outlined,
+            fullWidth: true,
+            height: 52,
+            backgroundColor: PCPEColors.primary,
+            foregroundColor: PCPEColors.pureWhite,
+            onPressed: () => _showMock(context, 'Enviar PDF ao SPP'),
+          ),
+          const SizedBox(height: 24),
+          const Divider(color: PCPEColors.surfaceGray),
+          const SizedBox(height: 16),
+          PCPEButton(
+            label: 'Nova Ocorrência',
+            icon: Icons.add,
+            fullWidth: true,
+            outlined: true,
+            height: 52,
+            onPressed: () => context.go('/nova-ocorrencia'),
+          ),
           const SizedBox(height: 32),
         ],
+      ),
+    );
+  }
+
+  void _showMock(BuildContext context, String action) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.info_outline,
+                color: PCPEColors.pureWhite, size: 18),
+            const SizedBox(width: 10),
+            Text('$action (simulado)',
+                style: const TextStyle(fontSize: 13)),
+          ],
+        ),
+        backgroundColor: PCPEColors.darkGray,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }

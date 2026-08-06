@@ -155,34 +155,15 @@ class _Step1IdentificacaoState extends State<Step1Identificacao> {
                   readOnly: true,
                 ),
                 const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: PCPEInput(
-                        label: 'Nº do BO',
-                        hint: 'Boletim de Ocorrência',
-                        prefixIcon: Icons.tag,
-                        controller: TextEditingController(text: widget.data.numeroBO),
-                        onChanged: (v) {
-                          widget.data.numeroBO = v;
-                          widget.onChanged();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: PCPEInput(
-                        label: 'Nº do Inquérito',
-                        hint: 'Inquérito Policial',
-                        prefixIcon: Icons.gavel,
-                        controller: TextEditingController(text: widget.data.numeroInquerito),
-                        onChanged: (v) {
-                          widget.data.numeroInquerito = v;
-                          widget.onChanged();
-                        },
-                      ),
-                    ),
-                  ],
+                PCPEInput(
+                  label: 'Nº do BO',
+                  hint: 'Boletim de Ocorrência',
+                  prefixIcon: Icons.tag,
+                  controller: TextEditingController(text: widget.data.numeroBO),
+                  onChanged: (v) {
+                    widget.data.numeroBO = v;
+                    widget.onChanged();
+                  },
                 ),
               ],
             ),

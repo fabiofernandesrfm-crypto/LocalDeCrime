@@ -5,15 +5,12 @@ import '../features/login/login_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/nova_ocorrencia/nova_ocorrencia_screen.dart';
 import '../features/ocorrencias/ocorrencias_screen.dart';
-import '../features/atendimentos/atendimentos_screen.dart';
 import '../features/pessoas/pessoas_screen.dart';
 import '../features/vestigios/vestigios_screen.dart';
 import '../features/objetos/objetos_screen.dart';
 import '../features/veiculos/veiculos_screen.dart';
 import '../features/fotografias/fotografias_screen.dart';
 import '../features/linha_do_tempo/linha_do_tempo_screen.dart';
-import '../features/equipes/equipes_screen.dart';
-import '../features/relatorios/relatorios_screen.dart';
 import '../features/sincronizacao/sincronizacao_screen.dart';
 import '../features/configuracoes/configuracoes_screen.dart';
 import '../features/perfil/perfil_screen.dart';
@@ -53,10 +50,6 @@ final appRouter = GoRouter(
           builder: (context, state) => const OcorrenciasScreen(),
         ),
         GoRoute(
-          path: '/atendimentos',
-          builder: (context, state) => const AtendimentosScreen(),
-        ),
-        GoRoute(
           path: '/pessoas',
           builder: (context, state) => const PessoasScreen(),
         ),
@@ -79,14 +72,6 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/linha-do-tempo',
           builder: (context, state) => const LinhaDoTempoScreen(),
-        ),
-        GoRoute(
-          path: '/equipes',
-          builder: (context, state) => const EquipesScreen(),
-        ),
-        GoRoute(
-          path: '/relatorios',
-          builder: (context, state) => const RelatoriosScreen(),
         ),
         GoRoute(
           path: '/sincronizacao',

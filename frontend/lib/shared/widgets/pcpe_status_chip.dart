@@ -9,6 +9,8 @@ enum PCPEStatus {
   cancelado,
   urgente,
   arquivado,
+  rascunho,
+  enviadoSpp,
 }
 
 extension PCPEStatusExtension on PCPEStatus {
@@ -28,6 +30,10 @@ extension PCPEStatusExtension on PCPEStatus {
         return 'Urgente';
       case PCPEStatus.arquivado:
         return 'Arquivado';
+      case PCPEStatus.rascunho:
+        return 'Rascunho';
+      case PCPEStatus.enviadoSpp:
+        return 'Enviado ao SPP';
     }
   }
 
@@ -47,6 +53,10 @@ extension PCPEStatusExtension on PCPEStatus {
         return PCPEColors.error;
       case PCPEStatus.arquivado:
         return PCPEColors.mediumGray;
+      case PCPEStatus.rascunho:
+        return PCPEColors.mediumGray;
+      case PCPEStatus.enviadoSpp:
+        return PCPEColors.success;
     }
   }
 
@@ -66,6 +76,10 @@ extension PCPEStatusExtension on PCPEStatus {
         return PCPEColors.errorLight;
       case PCPEStatus.arquivado:
         return PCPEColors.cardGray;
+      case PCPEStatus.rascunho:
+        return PCPEColors.surfaceGray;
+      case PCPEStatus.enviadoSpp:
+        return PCPEColors.successLight;
     }
   }
 
@@ -85,6 +99,10 @@ extension PCPEStatusExtension on PCPEStatus {
         return Icons.priority_high;
       case PCPEStatus.arquivado:
         return Icons.archive;
+      case PCPEStatus.rascunho:
+        return Icons.edit_note;
+      case PCPEStatus.enviadoSpp:
+        return Icons.send;
     }
   }
 }

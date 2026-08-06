@@ -40,19 +40,10 @@ class PCPESideMenu extends ConsumerWidget {
     SideMenuItem(label: 'Dashboard', icon: Icons.dashboard_outlined, route: '/dashboard'),
     SideMenuItem(label: 'Nova Ocorrência', icon: Icons.add_circle_outline, route: '/nova-ocorrencia'),
     SideMenuItem(label: 'Ocorrências', icon: Icons.folder_outlined, route: '/ocorrencias'),
-    SideMenuItem(label: 'Atendimentos', icon: Icons.medical_services_outlined, route: '/atendimentos'),
-    SideMenuItem(label: 'Usuários', icon: Icons.people_outline, route: '/usuarios'),
-    SideMenuItem(label: 'Pessoas', icon: Icons.person_outline, route: '/pessoas'),
-    SideMenuItem(label: 'Vestígios', icon: Icons.fingerprint, route: '/vestigios'),
-    SideMenuItem(label: 'Objetos', icon: Icons.category_outlined, route: '/objetos'),
-    SideMenuItem(label: 'Veículos', icon: Icons.directions_car_outlined, route: '/veiculos'),
-    SideMenuItem(label: 'Fotografias', icon: Icons.photo_library_outlined, route: '/fotografias'),
-    SideMenuItem(label: 'Linha do Tempo', icon: Icons.timeline_outlined, route: '/linha-do-tempo'),
-    SideMenuItem(label: 'Equipes', icon: Icons.groups_outlined, route: '/equipes'),
-    SideMenuItem(label: 'Relatórios', icon: Icons.assessment_outlined, route: '/relatorios'),
   ];
 
   static const List<SideMenuItem> bottomItems = [
+    SideMenuItem(label: 'Usuários', icon: Icons.people_outline, route: '/usuarios'),
     SideMenuItem(label: 'Sincronização', icon: Icons.sync, route: '/sincronizacao'),
     SideMenuItem(label: 'Configurações', icon: Icons.settings_outlined, route: '/configuracoes'),
     SideMenuItem(label: 'Perfil', icon: Icons.person_outline, route: '/perfil'),
@@ -164,7 +155,7 @@ class PCPESideMenu extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  ...menuItems.sublist(0, 5).map((item) => _buildMenuItem(context, item)),
+                  ...menuItems.sublist(0, 3).map((item) => _buildMenuItem(context, item)),
                   const SizedBox(height: 8),
                   const Padding(
                     padding: EdgeInsets.fromLTRB(20, 4, 20, 4),
@@ -178,7 +169,7 @@ class PCPESideMenu extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  ...menuItems.sublist(5).map((item) => _buildMenuItem(context, item)),
+                  ...menuItems.sublist(3).map((item) => _buildMenuItem(context, item)),
                   const SizedBox(height: 12),
                   const Divider(color: PCPEColors.lightGray, indent: 20, endIndent: 20),
                   const Padding(

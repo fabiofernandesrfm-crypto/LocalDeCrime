@@ -7,27 +7,27 @@ import '../../../shared/widgets/pcpe_section_title.dart';
 import '../../../shared/widgets/narrative_editor_widget.dart';
 import 'ocorrencia_wizard_data.dart';
 
-/// Etapa 8: Narrativa
+/// Etapa 7: Narrativa
 ///
 /// Layout responsivo:
 /// - Desktop (>= DESKTOP): Narrativa (largura total), Observações e Providências lado a lado
 /// - Tablet (TABLET): Todas as seções empilhadas, cards mais largos
 /// - Mobile (MOBILE): Todas as seções empilhadas, padding reduzido
-class Step8Narrativa extends StatefulWidget {
+class Step7Narrativa extends StatefulWidget {
   final OcorrenciaWizardData data;
   final void Function() onChanged;
 
-  const Step8Narrativa({
+  const Step7Narrativa({
     super.key,
     required this.data,
     required this.onChanged,
   });
 
   @override
-  State<Step8Narrativa> createState() => _Step8NarrativaState();
+  State<Step7Narrativa> createState() => _Step7NarrativaState();
 }
 
-class _Step8NarrativaState extends State<Step8Narrativa> {
+class _Step7NarrativaState extends State<Step7Narrativa> {
   late TextEditingController _narrativaController;
   late TextEditingController _observacoesController;
   late TextEditingController _providenciasController;
@@ -180,4 +180,3 @@ class _Step8NarrativaState extends State<Step8Narrativa> {
     );
   }
 }
-

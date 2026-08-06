@@ -4,6 +4,15 @@ import '../../../shared/models/media_item.dart';
 
 /// Modelo de dados para o Wizard de Registro de Ocorrência.
 /// Mantém todo o estado durante o fluxo de cadastro (dados MOCK).
+///
+/// REESTRUTURAÇÃO F14:
+/// - 9 etapas (removida etapa exclusiva "Fotografias / Mídias")
+/// - Cada entidade possui sua própria galeria de imagens
+/// - Mídias vinculadas diretamente ao item correspondente
+
+// ─────────────────────────────────────────────────────────────────
+// Modelos de entidade com galeria de mídias
+// ─────────────────────────────────────────────────────────────────
 
 class PessoaEnvolvida {
   String nome;
@@ -11,8 +20,10 @@ class PessoaEnvolvida {
   DateTime? dataNascimento;
   String telefone;
   String endereco;
-  String tipo; // Vítima, Suspeito, Testemunha, Comunicante
+  String tipo; // Vítima, Suspeito, Testemunha, Noticiante
+  String nic;
   String observacoes;
+  final List<MediaItem> midias;
 
   PessoaEnvolvida({
     this.nome = '',
@@ -21,8 +32,10 @@ class PessoaEnvolvida {
     this.telefone = '',
     this.endereco = '',
     this.tipo = 'Vítima',
+    this.nic = '',
     this.observacoes = '',
-  });
+    List<MediaItem>? midias,
+  }) : midias = midias ?? [];
 }
 
 class VeiculoEnvolvido {
@@ -33,6 +46,7 @@ class VeiculoEnvolvido {
   String cor;
   String situacao;
   String observacoes;
+  final List<MediaItem> midias;
 
   VeiculoEnvolvido({
     this.placa = '',
@@ -42,7 +56,8 @@ class VeiculoEnvolvido {
     this.cor = '',
     this.situacao = 'Apreendido',
     this.observacoes = '',
-  });
+    List<MediaItem>? midias,
+  }) : midias = midias ?? [];
 }
 
 class ObjetoRelacionado {
@@ -51,6 +66,7 @@ class ObjetoRelacionado {
   int quantidade;
   String situacao;
   String observacoes;
+  final List<MediaItem> midias;
 
   ObjetoRelacionado({
     this.categoria = '',
@@ -58,7 +74,8 @@ class ObjetoRelacionado {
     this.quantidade = 1,
     this.situacao = 'Coletado',
     this.observacoes = '',
-  });
+    List<MediaItem>? midias,
+  }) : midias = midias ?? [];
 }
 
 class VestigioEncontrado {
@@ -68,6 +85,7 @@ class VestigioEncontrado {
   bool coletado;
   String responsavel;
   String observacoes;
+  final List<MediaItem> midias;
 
   VestigioEncontrado({
     this.tipo = '',
@@ -76,8 +94,13 @@ class VestigioEncontrado {
     this.coletado = false,
     this.responsavel = '',
     this.observacoes = '',
-  });
+    List<MediaItem>? midias,
+  }) : midias = midias ?? [];
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Wizard Data principal
+// ─────────────────────────────────────────────────────────────────
 
 class OcorrenciaWizardData {
   // ── Etapa 1: Identificação ──────────────────────────────────
@@ -107,6 +130,9 @@ class OcorrenciaWizardData {
   String latitude = '';
   String longitude = '';
   bool gpsCapturado = false;
+  
+  /// Galeria de fotografias do local do crime
+  final List<MediaItem> midiasLocal = [];
 
   // ── Etapa 3: Pessoas Envolvidas ─────────────────────────────
   List<PessoaEnvolvida> pessoas = [];
@@ -120,10 +146,7 @@ class OcorrenciaWizardData {
   // ── Etapa 6: Vestígios ──────────────────────────────────────
   List<VestigioEncontrado> vestigios = [];
 
-  // ── Etapa 7: Fotografias e Mídias ───────────────────────────
-  List<MediaItem> midias = [];
-
-  // ── Etapa 8: Narrativa ──────────────────────────────────────
+  // ── Etapa 7: Narrativa ──────────────────────────────────────
   String narrativa = '';
   String observacoesGerais = '';
   String providenciasAdotadas = '';
@@ -160,16 +183,14 @@ class OcorrenciaWizardData {
     gpsCapturado = true;
   }
 
-  int get totalSteps => 10;
+  /// 7 etapas após reestruturação F17
+  int get totalSteps => 7;
 
   List<String> get stepLabels => [
         'Identificação',
         'Local do Crime',
         'Pessoas',
-        'Veículos',
-        'Objetos',
-        'Vestígios',
-        'Fotografias',
+        'Elementos Relacionados',
         'Narrativa',
         'Revisão',
         'Finalização',
@@ -179,12 +200,153 @@ class OcorrenciaWizardData {
         Icons.description_outlined,
         Icons.location_on_outlined,
         Icons.people_outline,
-        Icons.directions_car_outlined,
-        Icons.inventory_2_outlined,
-        Icons.biotech_outlined,
-        Icons.photo_camera_outlined,
+        Icons.search_outlined,
         Icons.edit_note,
         Icons.preview_outlined,
         Icons.check_circle_outline,
       ];
+
+  List<String> get stepOrientations => [
+        'Classifique a ocorrência e informe os dados iniciais do registro.',
+        'Registre o endereço, as características do local e as fotografias correspondentes.',
+        'Cadastre todas as pessoas relacionadas à ocorrência. Para vítimas, informe também o NIC.',
+        'Registre os veículos, objetos e vestígios encontrados, incluindo as fotografias correspondentes.',
+        'Descreva de forma clara e objetiva os fatos observados. A narrativa poderá ser digitada ou ditada.',
+        'Confira as informações registradas e avalie as pendências antes de prosseguir para a conclusão.',
+        'Finalize oficialmente a ocorrência e acesse as opções de visualização, impressão, PDF e envio ao SPP.',
+      ];
+
+  List<String> get nextButtonLabels => [
+        'Continuar para Local do Crime',
+        'Continuar para Pessoas',
+        'Continuar para Elementos do Local',
+        'Continuar para Narrativa',
+        'Continuar para Revisão',
+        'Prosseguir para Conclusão',
+        '', // última etapa não tem botão próximo
+      ];
+
+  List<String> get backButtonLabels => [
+        '',
+        'Voltar para Identificação',
+        'Voltar para Pessoas',
+        'Voltar para Elementos',
+        'Voltar para Narrativa',
+        'Voltar para Revisão',
+        '',
+      ];
+
+  // ─────────────────────────────────────────────────────────────
+  // Contagem total de mídias (todas as entidades + local)
+  // ─────────────────────────────────────────────────────────────
+
+  int get totalMidias {
+    int count = midiasLocal.length;
+    for (final p in pessoas) {
+      count += p.midias.length;
+    }
+    for (final v in veiculos) {
+      count += v.midias.length;
+    }
+    for (final o in objetos) {
+      count += o.midias.length;
+    }
+    for (final v in vestigios) {
+      count += v.midias.length;
+    }
+    return count;
+  }
+
+  bool get possuiMidias => totalMidias > 0;
+
+  // ─────────────────────────────────────────────────────────────
+  // Exportação de mídias organizadas por categoria (PDF futuro)
+  // ─────────────────────────────────────────────────────────────
+
+  Map<String, List<MediaItem>> get midiasOrganizadasPorCategoria {
+    final Map<String, List<MediaItem>> organizadas = {};
+
+    if (midiasLocal.isNotEmpty) {
+      organizadas['Local do Crime'] = List.from(midiasLocal);
+    }
+
+    for (final p in pessoas) {
+      if (p.midias.isNotEmpty) {
+        final key = '${p.tipo}: ${p.nome}';
+        organizadas[key] = List.from(p.midias);
+      }
+    }
+
+    for (final v in veiculos) {
+      if (v.midias.isNotEmpty) {
+        final key = 'Veículo: ${v.placa}';
+        organizadas[key] = List.from(v.midias);
+      }
+    }
+
+    for (final o in objetos) {
+      if (o.midias.isNotEmpty) {
+        final key = 'Objeto: ${o.descricao}';
+        organizadas[key] = List.from(o.midias);
+      }
+    }
+
+    for (final v in vestigios) {
+      if (v.midias.isNotEmpty) {
+        final key = 'Vestígio: ${v.descricao}';
+        organizadas[key] = List.from(v.midias);
+      }
+    }
+
+    return organizadas;
+  }
+
+  List<Map<String, dynamic>> exportarMidiasParaPDF() {
+    final List<Map<String, dynamic>> lista = [];
+
+    for (final m in midiasLocal) {
+      lista.add({
+        ...m.toMap(),
+        'contexto': 'Local do Crime',
+      });
+    }
+
+    for (final p in pessoas) {
+      for (final m in p.midias) {
+        lista.add({
+          ...m.toMap(),
+          'contexto': '${p.tipo}: ${p.nome}',
+        });
+      }
+    }
+
+    for (final v in veiculos) {
+      for (final m in v.midias) {
+        lista.add({
+          ...m.toMap(),
+          'contexto': 'Veículo: ${v.placa}',
+        });
+      }
+    }
+
+    for (final o in objetos) {
+      for (final m in o.midias) {
+        lista.add({
+          ...m.toMap(),
+          'contexto': 'Objeto: ${o.descricao}',
+        });
+      }
+    }
+
+    for (final v in vestigios) {
+      for (final m in v.midias) {
+        lista.add({
+          ...m.toMap(),
+          'contexto': 'Vestígio: ${v.descricao}',
+        });
+      }
+    }
+
+    return lista;
+  }
 }

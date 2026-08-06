@@ -3,10 +3,11 @@ import '../../../design_system/design_system.dart';
 import '../../../shared/widgets/pcpe_input.dart';
 import '../../../shared/widgets/pcpe_card.dart';
 import '../../../shared/widgets/pcpe_button.dart';
-import '../../../shared/widgets/pcpe_section_title.dart';
+import '../../../shared/widgets/media_capture_section.dart';
 import 'ocorrencia_wizard_data.dart';
 
 /// Etapa 6: Vestígios
+/// Cada vestígio possui sua própria galeria de fotografias.
 class Step6Vestigios extends StatefulWidget {
   final OcorrenciaWizardData data;
   final void Function() onChanged;
@@ -174,6 +175,7 @@ class _Step6VestigiosState extends State<Step6Vestigios> {
                                       coletado: coletado,
                                       responsavel: respCtrl.text,
                                       observacoes: obsCtrl.text,
+                                      midias: vestigio?.midias ?? [],
                                     );
                                     if (vestigio != null && index != null) {
                                       widget.data.vestigios[index] = novo;
@@ -188,6 +190,77 @@ class _Step6VestigiosState extends State<Step6Vestigios> {
                             ],
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _abrirGaleriaVestigio(int index) {
+    final vestigio = widget.data.vestigios[index];
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.9,
+              decoration: const BoxDecoration(
+                color: PCPEColors.background,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: PCPEColors.lightGray,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Vestígio: ${vestigio.descricao}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: PCPEColors.black,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: MediaCaptureSection(
+                        midias: vestigio.midias,
+                        onChanged: () {
+                          setSheetState(() {});
+                          setState(() {});
+                          widget.onChanged();
+                        },
+                        title: 'Fotografias do Vestígio',
+                        subtitle: 'Fotos vinculadas a este vestígio',
+                        gpsTexto: 'GPS não disponível',
                       ),
                     ),
                   ),
@@ -233,21 +306,63 @@ class _Step6VestigiosState extends State<Step6Vestigios> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: PCPESectionTitle(
-                        title: 'Vestígios Encontrados',
-                        icon: Icons.biotech_outlined,
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 400;
+                    final iconWidget = Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: PCPEColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                    ),
-                    PCPEButton(
+                      child: const Icon(Icons.biotech_outlined, size: 20, color: PCPEColors.primary),
+                    );
+                    final titleWidget = const Expanded(
+                      child: Text(
+                        'Vestígios Encontrados',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: PCPEColors.black,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    );
+                    final buttonWidget = PCPEButton(
                       label: 'Adicionar',
                       icon: Icons.add,
                       small: true,
                       onPressed: () => _mostrarFormVestigio(),
-                    ),
-                  ],
+                    );
+
+                    if (isNarrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              iconWidget,
+                              const SizedBox(width: 14),
+                              titleWidget,
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: buttonWidget,
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        iconWidget,
+                        const SizedBox(width: 14),
+                        titleWidget,
+                        buttonWidget,
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 if (widget.data.vestigios.isEmpty)
@@ -269,6 +384,7 @@ class _Step6VestigiosState extends State<Step6Vestigios> {
                 else
                   ...List.generate(widget.data.vestigios.length, (index) {
                     final v = widget.data.vestigios[index];
+                    final fotoCount = v.midias.length;
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
@@ -314,6 +430,15 @@ class _Step6VestigiosState extends State<Step6Vestigios> {
                                 ),
                               ),
                             ),
+                            if (fotoCount > 0) ...[
+                              const SizedBox(width: 8),
+                              Icon(Icons.photo_camera, size: 14, color: PCPEColors.primary.withValues(alpha: 0.7)),
+                              const SizedBox(width: 2),
+                              Text(
+                                '$fotoCount',
+                                style: TextStyle(fontSize: 12, color: PCPEColors.primary.withValues(alpha: 0.7), fontWeight: FontWeight.w600),
+                              ),
+                            ],
                             if (v.localizacao.isNotEmpty) ...[
                               const SizedBox(width: 8),
                               Flexible(
@@ -332,6 +457,11 @@ class _Step6VestigiosState extends State<Step6Vestigios> {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            IconButton(
+                              icon: const Icon(Icons.photo_camera, size: 18, color: PCPEColors.info),
+                              tooltip: 'Fotografias',
+                              onPressed: () => _abrirGaleriaVestigio(index),
+                            ),
                             IconButton(
                               icon: const Icon(Icons.edit, size: 18, color: PCPEColors.primary),
                               onPressed: () => _mostrarFormVestigio(vestigio: v, index: index),

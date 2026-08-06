@@ -112,13 +112,9 @@ class DashboardScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 children: [
                   _buildQuickAction(context, 'Nova Ocorrência', Icons.add_circle_outline, '/nova-ocorrencia'),
-                  _buildQuickAction(context, 'Buscar Pessoa', Icons.person_search, '/pessoas'),
-                  _buildQuickAction(context, 'Fotografar', Icons.camera_alt_outlined, '/fotografias'),
-                  _buildQuickAction(context, 'Relatório', Icons.description_outlined, '/relatorios'),
+                  _buildQuickAction(context, 'Ocorrências', Icons.folder_outlined, '/ocorrencias'),
+                  _buildQuickAction(context, 'Rascunhos', Icons.edit_note, '/ocorrencias'),
                   _buildQuickAction(context, 'Sincronizar', Icons.sync, '/sincronizacao'),
-                  _buildQuickAction(context, 'Equipes', Icons.groups_outlined, '/equipes'),
-                  _buildQuickAction(context, 'Vestígios', Icons.fingerprint, '/vestigios'),
-                  _buildQuickAction(context, 'Veículos', Icons.directions_car_outlined, '/veiculos'),
                 ],
               ),
             ),
@@ -173,17 +169,18 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildStatisticsGrid(BuildContext context, bool isMobile) {
     final items = [
-      {'title': 'Ocorrências', 'value': '1.247', 'icon': Icons.folder_open, 'color': PCPEColors.primary, 'trend': '+12%', 'trendUp': true, 'route': '/ocorrencias'},
-      {'title': 'Atendimentos', 'value': '3.892', 'icon': Icons.medical_services, 'color': PCPEColors.primaryDark, 'trend': '+8%', 'trendUp': true, 'route': '/atendimentos'},
-      {'title': 'Pessoas', 'value': '5.630', 'icon': Icons.people, 'color': PCPEColors.success, 'trend': '+23%', 'trendUp': true, 'route': '/pessoas'},
-      {'title': 'Veículos', 'value': '892', 'icon': Icons.directions_car, 'color': PCPEColors.warning, 'trend': '+4%', 'trendUp': true, 'route': '/veiculos'},
+      {'title': 'Registradas', 'value': '1.247', 'icon': Icons.folder_open, 'color': PCPEColors.primary, 'subtitle': 'Total de ocorrências', 'route': '/ocorrencias'},
+      {'title': 'Rascunhos', 'value': '23', 'icon': Icons.edit_note, 'color': PCPEColors.mediumGray, 'subtitle': 'Aguardando conclusão', 'route': '/ocorrencias'},
+      {'title': 'Concluídas', 'value': '1.198', 'icon': Icons.check_circle_outline, 'color': PCPEColors.success, 'subtitle': 'PDF disponível', 'route': '/ocorrencias'},
+      {'title': 'A sincronizar', 'value': '26', 'icon': Icons.sync_problem, 'color': PCPEColors.warning, 'subtitle': 'Aguardando envio ao SPP', 'route': '/ocorrencias'},
     ];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final crossAxisCount = isMobile ? 2 : 4;
+          final width = constraints.maxWidth;
+          final crossAxisCount = width < 360 ? 1 : width < 600 ? 2 : 4;
           final spacing = 12.0;
           final totalSpacing = spacing * (crossAxisCount - 1);
           final itemWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
@@ -199,8 +196,7 @@ class DashboardScreen extends StatelessWidget {
                   value: item['value'] as String,
                   icon: item['icon'] as IconData,
                   color: item['color'] as Color?,
-                  trend: item['trend'] as String?,
-                  trendUp: item['trendUp'] as bool,
+                  subtitle: item['subtitle'] as String?,
                   onTap: () => context.go(item['route'] as String),
                 ),
               );
@@ -273,17 +269,18 @@ class DashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 6,
               children: [
-                _buildLegendDot(PCPEColors.primary, 'Ocorrências'),
-                const SizedBox(width: 16),
-                _buildLegendDot(PCPEColors.success, 'Atendimentos'),
-                const SizedBox(width: 16),
-                _buildLegendDot(PCPEColors.warning, 'Diligências'),
-                const Spacer(),
-                const Text('2026', style: TextStyle(fontSize: 12, color: PCPEColors.mediumGray, fontWeight: FontWeight.w500)),
+                _buildLegendDot(PCPEColors.mediumGray, 'Em Rascunho'),
+                _buildLegendDot(PCPEColors.success, 'Concluídas'),
+                _buildLegendDot(PCPEColors.warning, 'Aguard. Sinc.'),
+                _buildLegendDot(PCPEColors.primary, 'Sincronizadas'),
               ],
             ),
+            const SizedBox(height: 4),
+            const Text('2026', style: TextStyle(fontSize: 12, color: PCPEColors.mediumGray, fontWeight: FontWeight.w500)),
             const SizedBox(height: 16),
             SizedBox(
               height: 180,
@@ -563,20 +560,26 @@ class DashboardScreen extends StatelessWidget {
 class _ChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint1 = Paint()
-      ..color = PCPEColors.primary.withValues(alpha: 0.6)
-      ..strokeWidth = 2.5
+    final rascunhoPaint = Paint()
+      ..color = PCPEColors.mediumGray.withValues(alpha: 0.6)
+      ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    final paint2 = Paint()
+    final concluidasPaint = Paint()
       ..color = PCPEColors.success.withValues(alpha: 0.6)
       ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    final paint3 = Paint()
+    final agSincPaint = Paint()
       ..color = PCPEColors.warning.withValues(alpha: 0.6)
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final sincPaint = Paint()
+      ..color = PCPEColors.primary.withValues(alpha: 0.6)
       ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -591,21 +594,37 @@ class _ChartPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    // Draw lines
+    // 12 months
     final months = 12;
-    final rng = Random(42);
-    _drawChartLine(canvas, size, paint1, months, rng, offset: 0.6);
-    _drawChartLine(canvas, size, paint2, months, Random(24), offset: 0.4);
-    _drawChartLine(canvas, size, paint3, months, Random(36), offset: 0.2);
+
+    // Rascunhos: low line (small values ~15-30)
+    _drawChartLine(canvas, size, rascunhoPaint, months, _rascunhoData(), offset: 0.0);
+
+    // Concluídas: high line (~80-120)
+    _drawChartLine(canvas, size, concluidasPaint, months, _concluidasData(), offset: 0.0);
+
+    // Aguardando Sinc: low line (~2-15)
+    _drawChartLine(canvas, size, agSincPaint, months, _aguardandoSincData(), offset: 0.0);
+
+    // Sincronizadas: tracks concluídas slightly below (~70-110)
+    _drawChartLine(canvas, size, sincPaint, months, _sincronizadasData(), offset: 0.0);
   }
 
-  void _drawChartLine(Canvas canvas, Size size, Paint paint, int count, Random rng, {double offset = 0.5}) {
+  List<double> _rascunhoData() => [18, 20, 22, 19, 23, 25, 21, 24, 26, 22, 28, 23];
+  List<double> _concluidasData() => [95, 100, 98, 105, 102, 110, 108, 112, 115, 118, 120, 1198];
+  List<double> _aguardandoSincData() => [8, 10, 6, 12, 9, 7, 11, 5, 14, 8, 15, 26];
+  List<double> _sincronizadasData() => [87, 90, 92, 93, 93, 103, 97, 107, 110, 110, 115, 1172];
+
+  void _drawChartLine(Canvas canvas, Size size, Paint paint, int count, List<double> data, {double offset = 0.0}) {
     final path = Path();
     final stepX = size.width / (count - 1);
+    final maxVal = data.reduce((a, b) => a > b ? a : b);
+    if (maxVal == 0) return;
 
     for (int i = 0; i < count; i++) {
       final x = stepX * i;
-      final y = size.height * (0.2 + offset * 0.5 + (rng.nextDouble() - 0.5) * 0.6);
+      final normalized = data[i] / maxVal;
+      final y = size.height - (normalized * size.height * 0.85) - 10;
       if (i == 0) {
         path.moveTo(x, y.clamp(10, size.height - 10));
       } else {

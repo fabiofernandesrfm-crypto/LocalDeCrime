@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../design_system/design_system.dart';
 import '../../../shared/widgets/pcpe_input.dart';
 import '../../../shared/widgets/pcpe_card.dart';
 import '../../../shared/widgets/pcpe_button.dart';
-import '../../../shared/widgets/pcpe_section_title.dart';
+import '../../../shared/widgets/media_capture_section.dart';
 import 'ocorrencia_wizard_data.dart';
 
 /// Etapa 3: Pessoas Envolvidas
+/// Cada pessoa possui sua própria galeria de fotografias.
 class Step3Pessoas extends StatefulWidget {
   final OcorrenciaWizardData data;
   final void Function() onChanged;
@@ -22,13 +24,22 @@ class Step3Pessoas extends StatefulWidget {
 }
 
 class _Step3PessoasState extends State<Step3Pessoas> {
-  final _tiposPessoa = ['Vítima', 'Suspeito', 'Testemunha', 'Comunicante'];
+  final _tiposPessoa = ['Vítima', 'Suspeito', 'Testemunha', 'Noticiante'];
+
+  String? _validarNic(String? value) {
+    if (value == null || value.isEmpty) return null;
+    if (value.length != 7) {
+      return 'O NIC deve conter exatamente 7 dígitos';
+    }
+    return null;
+  }
 
   void _mostrarFormPessoa({PessoaEnvolvida? pessoa, int? index}) {
     final nomeCtrl = TextEditingController(text: pessoa?.nome ?? '');
     final cpfCtrl = TextEditingController(text: pessoa?.cpf ?? '');
     final telefoneCtrl = TextEditingController(text: pessoa?.telefone ?? '');
     final enderecoCtrl = TextEditingController(text: pessoa?.endereco ?? '');
+    final nicCtrl = TextEditingController(text: pessoa?.nic ?? '');
     final obsCtrl = TextEditingController(text: pessoa?.observacoes ?? '');
     String tipo = pessoa?.tipo ?? 'Vítima';
     DateTime? dataNasc = pessoa?.dataNascimento;
@@ -40,6 +51,7 @@ class _Step3PessoasState extends State<Step3Pessoas> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setModalState) {
+            final isVitima = tipo == 'Vítima';
             return Container(
               height: MediaQuery.of(context).size.height * 0.85,
               decoration: const BoxDecoration(
@@ -48,7 +60,6 @@ class _Step3PessoasState extends State<Step3Pessoas> {
               ),
               child: Column(
                 children: [
-                  // Handle
                   Container(
                     margin: const EdgeInsets.symmetric(vertical: 12),
                     width: 40,
@@ -99,6 +110,30 @@ class _Step3PessoasState extends State<Step3Pessoas> {
                             onChanged: (v) => setModalState(() => tipo = v!),
                           ),
                           const SizedBox(height: 14),
+                          AnimatedSize(
+                            duration: PCPEAnimations.medium,
+                            curve: PCPEAnimations.easeOut,
+                            alignment: Alignment.topCenter,
+                            child: isVitima
+                                ? Column(
+                                    children: [
+                                      PCPEInput(
+                                        label: 'Nº do NIC',
+                                        hint: '0000000',
+                                        prefixIcon: Icons.fingerprint,
+                                        keyboardType: TextInputType.number,
+                                        maxLength: 7,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.digitsOnly,
+                                        ],
+                                        validator: _validarNic,
+                                        controller: nicCtrl,
+                                      ),
+                                      const SizedBox(height: 14),
+                                    ],
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
                           PCPEInput(
                             label: 'Nome Completo',
                             hint: 'Nome da pessoa',
@@ -212,7 +247,9 @@ class _Step3PessoasState extends State<Step3Pessoas> {
                                       telefone: telefoneCtrl.text,
                                       endereco: enderecoCtrl.text,
                                       tipo: tipo,
+                                      nic: nicCtrl.text,
                                       observacoes: obsCtrl.text,
+                                      midias: pessoa?.midias ?? [],
                                     );
                                     if (pessoa != null && index != null) {
                                       widget.data.pessoas[index] = nova;
@@ -239,6 +276,77 @@ class _Step3PessoasState extends State<Step3Pessoas> {
     );
   }
 
+  void _abrirGaleriaPessoa(int index) {
+    final pessoa = widget.data.pessoas[index];
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.9,
+              decoration: const BoxDecoration(
+                color: PCPEColors.background,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: PCPEColors.lightGray,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Text(
+                          '${pessoa.tipo}: ${pessoa.nome}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: PCPEColors.black,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: MediaCaptureSection(
+                        midias: pessoa.midias,
+                        onChanged: () {
+                          setSheetState(() {});
+                          setState(() {});
+                          widget.onChanged();
+                        },
+                        title: 'Fotografias de ${pessoa.nome}',
+                        subtitle: 'Fotos vinculadas a esta pessoa',
+                        gpsTexto: 'GPS não disponível',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Color _tipoColor(String tipo) {
     switch (tipo) {
       case 'Vítima':
@@ -247,7 +355,7 @@ class _Step3PessoasState extends State<Step3Pessoas> {
         return PCPEColors.warning;
       case 'Testemunha':
         return PCPEColors.info;
-      case 'Comunicante':
+      case 'Noticiante':
         return PCPEColors.success;
       default:
         return PCPEColors.mediumGray;
@@ -265,21 +373,63 @@ class _Step3PessoasState extends State<Step3Pessoas> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: PCPESectionTitle(
-                        title: 'Pessoas Envolvidas',
-                        icon: Icons.people_outline,
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 400;
+                    final iconWidget = Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: PCPEColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                    ),
-                    PCPEButton(
+                      child: const Icon(Icons.people_outline, size: 20, color: PCPEColors.primary),
+                    );
+                    final titleWidget = const Expanded(
+                      child: Text(
+                        'Pessoas Envolvidas',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: PCPEColors.black,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    );
+                    final buttonWidget = PCPEButton(
                       label: 'Adicionar',
                       icon: Icons.add,
                       small: true,
                       onPressed: () => _mostrarFormPessoa(),
-                    ),
-                  ],
+                    );
+
+                    if (isNarrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              iconWidget,
+                              const SizedBox(width: 14),
+                              titleWidget,
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: buttonWidget,
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        iconWidget,
+                        const SizedBox(width: 14),
+                        titleWidget,
+                        buttonWidget,
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 if (widget.data.pessoas.isEmpty)
@@ -296,7 +446,7 @@ class _Step3PessoasState extends State<Step3Pessoas> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'Adicione vítimas, suspeitos, testemunhas ou comunicantes.',
+                            'Adicione vítimas, suspeitos, testemunhas ou noticiantes.',
                             style: TextStyle(color: PCPEColors.lightGray, fontSize: 12),
                             textAlign: TextAlign.center,
                           ),
@@ -307,6 +457,7 @@ class _Step3PessoasState extends State<Step3Pessoas> {
                 else
                   ...List.generate(widget.data.pessoas.length, (index) {
                     final p = widget.data.pessoas[index];
+                    final fotoCount = p.midias.length;
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
@@ -350,11 +501,20 @@ class _Step3PessoasState extends State<Step3Pessoas> {
                                 ),
                               ),
                             ),
-                            if (p.cpf.isNotEmpty) ...[
+                            if (p.nic.isNotEmpty) ...[
                               const SizedBox(width: 8),
                               Text(
-                                p.cpf,
+                                'NIC: ${p.nic}',
                                 style: const TextStyle(fontSize: 12, color: PCPEColors.mediumGray),
+                              ),
+                            ],
+                            if (fotoCount > 0) ...[
+                              const SizedBox(width: 8),
+                              Icon(Icons.photo_camera, size: 14, color: PCPEColors.primary.withValues(alpha: 0.7)),
+                              const SizedBox(width: 2),
+                              Text(
+                                '$fotoCount',
+                                style: TextStyle(fontSize: 12, color: PCPEColors.primary.withValues(alpha: 0.7), fontWeight: FontWeight.w600),
                               ),
                             ],
                           ],
@@ -362,6 +522,11 @@ class _Step3PessoasState extends State<Step3Pessoas> {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            IconButton(
+                              icon: const Icon(Icons.photo_camera, size: 18, color: PCPEColors.info),
+                              tooltip: 'Fotografias',
+                              onPressed: () => _abrirGaleriaPessoa(index),
+                            ),
                             IconButton(
                               icon: const Icon(Icons.edit, size: 18, color: PCPEColors.primary),
                               onPressed: () => _mostrarFormPessoa(pessoa: p, index: index),

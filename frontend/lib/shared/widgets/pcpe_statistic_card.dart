@@ -59,24 +59,30 @@ class PCPEStatisticCard extends StatelessWidget {
                   child: Icon(icon, size: 22, color: cardColor),
                 ),
                 if (trend != null)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        trendUp ? Icons.trending_up : Icons.trending_down,
-                        size: 14,
-                        color: trendUp ? PCPEColors.success : PCPEColors.error,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        trend!,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          trendUp ? Icons.trending_up : Icons.trending_down,
+                          size: 14,
                           color: trendUp ? PCPEColors.success : PCPEColors.error,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 2),
+                        Flexible(
+                          child: Text(
+                            trend!,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: trendUp ? PCPEColors.success : PCPEColors.error,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
               ],
             ),

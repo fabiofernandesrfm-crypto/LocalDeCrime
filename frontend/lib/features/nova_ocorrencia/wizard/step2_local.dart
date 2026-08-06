@@ -5,10 +5,11 @@ import '../../../shared/widgets/pcpe_input.dart';
 import '../../../shared/widgets/pcpe_card.dart';
 import '../../../shared/widgets/pcpe_button.dart';
 import '../../../shared/widgets/pcpe_section_title.dart';
+import '../../../shared/widgets/media_capture_section.dart';
 import 'ocorrencia_wizard_data.dart';
 
-/// Etapa 2: Local do Crime
-class Step2LocalCrime extends StatelessWidget {
+/// Etapa 2: Local do Crime (com fotografias do local)
+class Step2LocalCrime extends StatefulWidget {
   final OcorrenciaWizardData data;
   final void Function() onChanged;
 
@@ -17,6 +18,15 @@ class Step2LocalCrime extends StatelessWidget {
     required this.data,
     required this.onChanged,
   });
+
+  @override
+  State<Step2LocalCrime> createState() => _Step2LocalCrimeState();
+}
+
+class _Step2LocalCrimeState extends State<Step2LocalCrime> {
+  String get _gpsTexto => widget.data.gpsCapturado
+      ? '${widget.data.latitude}, ${widget.data.longitude}'
+      : 'GPS não disponível';
 
   @override
   Widget build(BuildContext context) {
@@ -43,10 +53,10 @@ class Step2LocalCrime extends StatelessWidget {
                         label: 'UF',
                         hint: 'PE',
                         prefixIcon: Icons.map,
-                        controller: TextEditingController(text: data.uf),
+                        controller: TextEditingController(text: widget.data.uf),
                         onChanged: (v) {
-                          data.uf = v;
-                          onChanged();
+                          widget.data.uf = v;
+                          widget.onChanged();
                         },
                       ),
                     ),
@@ -57,10 +67,10 @@ class Step2LocalCrime extends StatelessWidget {
                         label: 'Município',
                         hint: 'Município',
                         prefixIcon: Icons.location_city,
-                        controller: TextEditingController(text: data.municipio),
+                        controller: TextEditingController(text: widget.data.municipio),
                         onChanged: (v) {
-                          data.municipio = v;
-                          onChanged();
+                          widget.data.municipio = v;
+                          widget.onChanged();
                         },
                       ),
                     ),
@@ -74,10 +84,10 @@ class Step2LocalCrime extends StatelessWidget {
                         label: 'Bairro',
                         hint: 'Bairro',
                         prefixIcon: Icons.location_on,
-                        controller: TextEditingController(text: data.bairro),
+                        controller: TextEditingController(text: widget.data.bairro),
                         onChanged: (v) {
-                          data.bairro = v;
-                          onChanged();
+                          widget.data.bairro = v;
+                          widget.onChanged();
                         },
                       ),
                     ),
@@ -88,10 +98,10 @@ class Step2LocalCrime extends StatelessWidget {
                         hint: '00000-000',
                         prefixIcon: Icons.mail_outline,
                         keyboardType: TextInputType.number,
-                        controller: TextEditingController(text: data.cep),
+                        controller: TextEditingController(text: widget.data.cep),
                         onChanged: (v) {
-                          data.cep = v;
-                          onChanged();
+                          widget.data.cep = v;
+                          widget.onChanged();
                         },
                       ),
                     ),
@@ -106,10 +116,10 @@ class Step2LocalCrime extends StatelessWidget {
                         label: 'Logradouro',
                         hint: 'Rua, Avenida...',
                         prefixIcon: Icons.add_road,
-                        controller: TextEditingController(text: data.logradouro),
+                        controller: TextEditingController(text: widget.data.logradouro),
                         onChanged: (v) {
-                          data.logradouro = v;
-                          onChanged();
+                          widget.data.logradouro = v;
+                          widget.onChanged();
                         },
                       ),
                     ),
@@ -118,10 +128,10 @@ class Step2LocalCrime extends StatelessWidget {
                       child: PCPEInput(
                         label: 'Número',
                         hint: 'Nº',
-                        controller: TextEditingController(text: data.numero),
+                        controller: TextEditingController(text: widget.data.numero),
                         onChanged: (v) {
-                          data.numero = v;
-                          onChanged();
+                          widget.data.numero = v;
+                          widget.onChanged();
                         },
                       ),
                     ),
@@ -132,10 +142,10 @@ class Step2LocalCrime extends StatelessWidget {
                   label: 'Complemento',
                   hint: 'Apartamento, Bloco...',
                   prefixIcon: Icons.info_outline,
-                  controller: TextEditingController(text: data.complemento),
+                  controller: TextEditingController(text: widget.data.complemento),
                   onChanged: (v) {
-                    data.complemento = v;
-                    onChanged();
+                    widget.data.complemento = v;
+                    widget.onChanged();
                   },
                 ),
                 const SizedBox(height: 14),
@@ -143,10 +153,10 @@ class Step2LocalCrime extends StatelessWidget {
                   label: 'Ponto de Referência',
                   hint: 'Próximo ao...',
                   prefixIcon: Icons.place_outlined,
-                  controller: TextEditingController(text: data.pontoReferencia),
+                  controller: TextEditingController(text: widget.data.pontoReferencia),
                   onChanged: (v) {
-                    data.pontoReferencia = v;
-                    onChanged();
+                    widget.data.pontoReferencia = v;
+                    widget.onChanged();
                   },
                 ),
               ],
@@ -170,7 +180,7 @@ class Step2LocalCrime extends StatelessWidget {
                         label: 'Latitude',
                         hint: '-8.0476...',
                         prefixIcon: Icons.arrow_upward,
-                        controller: TextEditingController(text: data.latitude),
+                        controller: TextEditingController(text: widget.data.latitude),
                         readOnly: true,
                       ),
                     ),
@@ -180,7 +190,7 @@ class Step2LocalCrime extends StatelessWidget {
                         label: 'Longitude',
                         hint: '-34.877...',
                         prefixIcon: Icons.arrow_forward,
-                        controller: TextEditingController(text: data.longitude),
+                        controller: TextEditingController(text: widget.data.longitude),
                         readOnly: true,
                       ),
                     ),
@@ -188,14 +198,14 @@ class Step2LocalCrime extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 PCPEButton(
-                  label: data.gpsCapturado ? 'GPS Capturado' : 'Capturar GPS (Simulado)',
-                  icon: data.gpsCapturado ? Icons.check_circle : Icons.gps_fixed,
+                  label: widget.data.gpsCapturado ? 'GPS Capturado' : 'Capturar GPS (Simulado)',
+                  icon: widget.data.gpsCapturado ? Icons.check_circle : Icons.gps_fixed,
                   fullWidth: true,
                   backgroundColor:
-                      data.gpsCapturado ? PCPEColors.success : PCPEColors.primary,
+                      widget.data.gpsCapturado ? PCPEColors.success : PCPEColors.primary,
                   onPressed: () {
-                    data.simularCapturaGPS();
-                    onChanged();
+                    widget.data.simularCapturaGPS();
+                    widget.onChanged();
                     HapticFeedback.mediumImpact();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -204,7 +214,7 @@ class Step2LocalCrime extends StatelessWidget {
                             const Icon(Icons.check_circle, color: PCPEColors.pureWhite, size: 18),
                             const SizedBox(width: 10),
                             Text(
-                              'GPS capturado: ${data.latitude}, ${data.longitude}',
+                              'GPS capturado: ${widget.data.latitude}, ${widget.data.longitude}',
                               style: const TextStyle(fontSize: 13),
                             ),
                           ],
@@ -270,7 +280,7 @@ class Step2LocalCrime extends StatelessWidget {
                             height: 1.5,
                           ),
                         ),
-                        if (data.latitude.isNotEmpty) ...[
+                        if (widget.data.latitude.isNotEmpty) ...[
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -279,7 +289,7 @@ class Step2LocalCrime extends StatelessWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              '${data.latitude}, ${data.longitude}',
+                              '${widget.data.latitude}, ${widget.data.longitude}',
                               style: const TextStyle(
                                 color: PCPEColors.success,
                                 fontSize: 12,
@@ -294,6 +304,16 @@ class Step2LocalCrime extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 16),
+          // Fotografias do Local do Crime
+          MediaCaptureSection(
+            midias: widget.data.midiasLocal,
+            onChanged: () => setState(() {}),
+            title: 'Fotografias do Local',
+            icon: Icons.photo_camera_outlined,
+            subtitle: 'Visão geral, fachada, acesso, ambiente, perímetro',
+            gpsTexto: _gpsTexto,
           ),
           const SizedBox(height: 24),
         ],

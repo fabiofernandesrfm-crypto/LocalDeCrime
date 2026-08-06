@@ -3,10 +3,11 @@ import '../../../design_system/design_system.dart';
 import '../../../shared/widgets/pcpe_input.dart';
 import '../../../shared/widgets/pcpe_card.dart';
 import '../../../shared/widgets/pcpe_button.dart';
-import '../../../shared/widgets/pcpe_section_title.dart';
+import '../../../shared/widgets/media_capture_section.dart';
 import 'ocorrencia_wizard_data.dart';
 
 /// Etapa 5: Objetos
+/// Cada objeto possui sua própria galeria de fotografias.
 class Step5Objetos extends StatefulWidget {
   final OcorrenciaWizardData data;
   final void Function() onChanged;
@@ -164,6 +165,7 @@ class _Step5ObjetosState extends State<Step5Objetos> {
                                       quantidade: int.tryParse(qtdCtrl.text) ?? 1,
                                       situacao: situacao,
                                       observacoes: obsCtrl.text,
+                                      midias: objeto?.midias ?? [],
                                     );
                                     if (objeto != null && index != null) {
                                       widget.data.objetos[index] = novo;
@@ -178,6 +180,77 @@ class _Step5ObjetosState extends State<Step5Objetos> {
                             ],
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _abrirGaleriaObjeto(int index) {
+    final objeto = widget.data.objetos[index];
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.9,
+              decoration: const BoxDecoration(
+                color: PCPEColors.background,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: PCPEColors.lightGray,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Objeto: ${objeto.descricao}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: PCPEColors.black,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: MediaCaptureSection(
+                        midias: objeto.midias,
+                        onChanged: () {
+                          setSheetState(() {});
+                          setState(() {});
+                          widget.onChanged();
+                        },
+                        title: 'Fotografias do Objeto',
+                        subtitle: 'Fotos vinculadas a este objeto',
+                        gpsTexto: 'GPS não disponível',
                       ),
                     ),
                   ),
@@ -223,21 +296,63 @@ class _Step5ObjetosState extends State<Step5Objetos> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: PCPESectionTitle(
-                        title: 'Objetos Relacionados',
-                        icon: Icons.inventory_2_outlined,
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 400;
+                    final iconWidget = Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: PCPEColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                    ),
-                    PCPEButton(
+                      child: const Icon(Icons.inventory_2_outlined, size: 20, color: PCPEColors.primary),
+                    );
+                    final titleWidget = const Expanded(
+                      child: Text(
+                        'Objetos Relacionados',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: PCPEColors.black,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    );
+                    final buttonWidget = PCPEButton(
                       label: 'Adicionar',
                       icon: Icons.add,
                       small: true,
                       onPressed: () => _mostrarFormObjeto(),
-                    ),
-                  ],
+                    );
+
+                    if (isNarrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              iconWidget,
+                              const SizedBox(width: 14),
+                              titleWidget,
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: buttonWidget,
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        iconWidget,
+                        const SizedBox(width: 14),
+                        titleWidget,
+                        buttonWidget,
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 if (widget.data.objetos.isEmpty)
@@ -259,6 +374,7 @@ class _Step5ObjetosState extends State<Step5Objetos> {
                 else
                   ...List.generate(widget.data.objetos.length, (index) {
                     final o = widget.data.objetos[index];
+                    final fotoCount = o.midias.length;
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
@@ -301,6 +417,15 @@ class _Step5ObjetosState extends State<Step5Objetos> {
                                 ),
                               ),
                             ),
+                            if (fotoCount > 0) ...[
+                              const SizedBox(width: 8),
+                              Icon(Icons.photo_camera, size: 14, color: PCPEColors.primary.withValues(alpha: 0.7)),
+                              const SizedBox(width: 2),
+                              Text(
+                                '$fotoCount',
+                                style: TextStyle(fontSize: 12, color: PCPEColors.primary.withValues(alpha: 0.7), fontWeight: FontWeight.w600),
+                              ),
+                            ],
                             const SizedBox(width: 8),
                             Text(
                               'Qtd: ${o.quantidade}',
@@ -318,6 +443,11 @@ class _Step5ObjetosState extends State<Step5Objetos> {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            IconButton(
+                              icon: const Icon(Icons.photo_camera, size: 18, color: PCPEColors.info),
+                              tooltip: 'Fotografias',
+                              onPressed: () => _abrirGaleriaObjeto(index),
+                            ),
                             IconButton(
                               icon: const Icon(Icons.edit, size: 18,
                                   color: PCPEColors.primary),
