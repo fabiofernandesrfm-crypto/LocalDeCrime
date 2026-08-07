@@ -5,6 +5,7 @@ import '../../design_system/design_system.dart';
 import '../../shared/widgets/pcpe_button.dart';
 import '../../shared/widgets/pcpe_input.dart';
 import 'ocorrencia_detalhe_screen.dart';
+import '../../core/services/pdf/ocorrencia_pdf_service.dart';
 
 /// Central de Ocorrências (F27/F28).
 class OcorrenciasScreen extends StatefulWidget {
@@ -107,6 +108,16 @@ class _OcorrenciasScreenState extends State<OcorrenciasScreen> {
     child: Row(children: [SizedBox(width: 130, child: Text('$l:', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: PCPEColors.darkGray))), Expanded(child: Text(v, style: const TextStyle(fontSize: 12, color: PCPEColors.black)))]),
   );
 
+  void _gerarPdf(Map<String, dynamic> o) {
+    try {
+      OcorrenciaPdfService.gerarPdf(o);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível gerar o PDF. Tente novamente.'), backgroundColor: PCPEColors.error, behavior: SnackBarBehavior.floating),
+      );
+    }
+  }
+
   void _abrirDetalhes(Map<String, dynamic> o) { Navigator.of(context).push(MaterialPageRoute(builder: (_) => OcorrenciaDetalheScreen(ocorrencia: o))); }
 
   void _onCardTap(Map<String, dynamic> o) { if ((o['status'] as String) == 'Rascunho') { context.go('/nova-ocorrencia'); } else { _abrirDetalhes(o); } }
@@ -151,8 +162,8 @@ class _OcorrenciasScreenState extends State<OcorrenciasScreen> {
                   const Icon(Icons.access_time, size: 12, color: PCPEColors.mediumGray), const SizedBox(width: 3), Text('Atualizada há ${o['alteracao']}', style: const TextStyle(fontSize: 10, color: PCPEColors.lightGray)), const Spacer(),
                   if (ehR) ...[PCPEButton(label: 'Continuar', icon: Icons.edit, small: true, height: 30, onPressed: () => context.go('/nova-ocorrencia')), const SizedBox(width: 6), PCPEButton(label: 'Visualizar', icon: Icons.visibility_outlined, small: true, height: 30, outlined: true, onPressed: () => _abrirDetalhes(o))],
                   if (ehA) ...[PCPEButton(label: 'Visualizar', icon: Icons.visibility_outlined, small: true, height: 30, outlined: true, onPressed: () => _abrirDetalhes(o)), const SizedBox(width: 6), PCPEButton(label: 'Sincronizar', icon: Icons.sync, small: true, height: 30, onPressed: () => _syncOcorrencia(ri))],
-                  if (ehC) ...[PCPEButton(label: 'Visualizar', icon: Icons.visibility_outlined, small: true, height: 30, outlined: true, onPressed: () => _abrirDetalhes(o)), const SizedBox(width: 6), PCPEButton(label: 'Gerar PDF', icon: Icons.picture_as_pdf_outlined, small: true, height: 30, outlined: true, onPressed: () {}), const SizedBox(width: 6), PCPEButton(label: 'Enviar ao SPP', icon: Icons.send, small: true, height: 30, onPressed: () => _sendToSpp(ri))],
-                  if (ehE) ...[PCPEButton(label: 'Visualizar', icon: Icons.visibility_outlined, small: true, height: 30, outlined: true, onPressed: () => _abrirDetalhes(o)), const SizedBox(width: 6), PCPEButton(label: 'Gerar PDF', icon: Icons.picture_as_pdf_outlined, small: true, height: 30, outlined: true, onPressed: () {}), const SizedBox(width: 6), PCPEButton(label: 'Imprimir', icon: Icons.print_outlined, small: true, height: 30, outlined: true, onPressed: () {})],
+                  if (ehC) ...[PCPEButton(label: 'Visualizar', icon: Icons.visibility_outlined, small: true, height: 30, outlined: true, onPressed: () => _abrirDetalhes(o)), const SizedBox(width: 6), PCPEButton(label: 'Gerar PDF', icon: Icons.picture_as_pdf_outlined, small: true, height: 30, outlined: true, onPressed: () => _gerarPdf(o)), const SizedBox(width: 6), PCPEButton(label: 'Enviar ao SPP', icon: Icons.send, small: true, height: 30, onPressed: () => _sendToSpp(ri))],
+                  if (ehE) ...[PCPEButton(label: 'Visualizar', icon: Icons.visibility_outlined, small: true, height: 30, outlined: true, onPressed: () => _abrirDetalhes(o)), const SizedBox(width: 6), PCPEButton(label: 'Gerar PDF', icon: Icons.picture_as_pdf_outlined, small: true, height: 30, outlined: true, onPressed: () => _gerarPdf(o)), const SizedBox(width: 6), PCPEButton(label: 'Imprimir', icon: Icons.print_outlined, small: true, height: 30, outlined: true, onPressed: () {})],
                 ]),
               ]),
             ),
