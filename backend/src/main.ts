@@ -48,6 +48,7 @@ async function bootstrap() {
 
   // Start
   const port = process.env.PORT ?? 3000;
+  app.enableShutdownHooks();
   await app.listen(port);
   console.log(`🚀 PCPE API rodando em http://localhost:${port}`);
   console.log(`📚 Swagger disponível em http://localhost:${port}/api/docs`);
