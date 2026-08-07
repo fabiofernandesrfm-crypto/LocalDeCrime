@@ -20,6 +20,7 @@ class SideMenuItem {
   });
 }
 
+/// Menu lateral com perfil Usuario de Campo (F37).
 class PCPESideMenu extends ConsumerWidget {
   final String userName;
   final String userRole;
@@ -43,9 +44,7 @@ class PCPESideMenu extends ConsumerWidget {
   ];
 
   static const List<SideMenuItem> bottomItems = [
-    SideMenuItem(label: 'Usuários', icon: Icons.people_outline, route: '/usuarios'),
     SideMenuItem(label: 'Sincronização', icon: Icons.sync, route: '/sincronizacao'),
-    SideMenuItem(label: 'Configurações', icon: Icons.settings_outlined, route: '/configuracoes'),
     SideMenuItem(label: 'Perfil', icon: Icons.person_outline, route: '/perfil'),
     SideMenuItem(label: 'Sobre', icon: Icons.info_outline, route: '/sobre'),
   ];
@@ -57,54 +56,38 @@ class PCPESideMenu extends ConsumerWidget {
       child: SafeArea(
         child: Column(
           children: [
-            // Header institucional
+            // Header
             Container(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF1B1B1B),
-                    Color(0xFF2D2D2D),
-                  ],
+                  colors: [Color(0xFF1B1B1B), Color(0xFF2D2D2D)],
                 ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: PCPEColors.primary.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.shield, size: 26, color: PCPEColors.primary),
+                  Row(children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: PCPEColors.primary.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(width: 14),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'PCPE',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: PCPEColors.pureWhite,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                          Text(
-                            'DTI – UNISA',
-                            style: TextStyle(fontSize: 10, color: PCPEColors.pureWhite, letterSpacing: 0.5),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                      child: const Icon(Icons.shield, size: 26, color: PCPEColors.primary),
+                    ),
+                    const SizedBox(width: 14),
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('PCPE', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: PCPEColors.pureWhite, letterSpacing: 1.5)),
+                        Text('DTI – UNISA', style: TextStyle(fontSize: 10, color: PCPEColors.pureWhite, letterSpacing: 0.5)),
+                      ],
+                    ),
+                  ]),
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -112,77 +95,39 @@ class PCPESideMenu extends ConsumerWidget {
                       color: PCPEColors.pureWhite.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Row(
-                      children: [
-                        const PCPEAvatar(name: 'Fabio Fernandes dos Santos', size: 36),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Ag. Fabio Fernandes',
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: PCPEColors.pureWhite),
-                              ),
-                              Text(
-                                'Agente de Polícia Civil • DTI – UNISA',
-                                style: TextStyle(fontSize: 10, color: PCPEColors.pureWhite.withValues(alpha: 0.8)),
-                              ),
-                            ],
-                          ),
+                    child: Row(children: [
+                      const PCPEAvatar(name: 'Fabio Fernandes dos Santos', size: 36),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Ag. Fabio Fernandes', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: PCPEColors.pureWhite)),
+                            Text('Agente de Policia Civil • DTI – UNISA', style: TextStyle(fontSize: 10, color: PCPEColors.pureWhite.withValues(alpha: 0.8))),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ]),
                   ),
                 ],
               ),
             ),
 
-            // Menu items with module grouping
+            // Menu items
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
                   const Padding(
                     padding: EdgeInsets.fromLTRB(20, 12, 20, 4),
-                    child: Text(
-                      'PRINCIPAL',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: PCPEColors.mediumGray,
-                        letterSpacing: 1.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    child: Text('PRINCIPAL', style: TextStyle(fontSize: 10, color: PCPEColors.mediumGray, letterSpacing: 1.5, fontWeight: FontWeight.w700)),
                   ),
-                  ...menuItems.sublist(0, 3).map((item) => _buildMenuItem(context, item)),
-                  const SizedBox(height: 8),
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(20, 4, 20, 4),
-                    child: Text(
-                      'REGISTROS',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: PCPEColors.mediumGray,
-                        letterSpacing: 1.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  ...menuItems.sublist(3).map((item) => _buildMenuItem(context, item)),
+                  ...menuItems.map((item) => _buildMenuItem(context, item)),
                   const SizedBox(height: 12),
                   const Divider(color: PCPEColors.lightGray, indent: 20, endIndent: 20),
                   const Padding(
                     padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
-                    child: Text(
-                      'SISTEMA',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: PCPEColors.mediumGray,
-                        letterSpacing: 1.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    child: Text('SISTEMA', style: TextStyle(fontSize: 10, color: PCPEColors.mediumGray, letterSpacing: 1.5, fontWeight: FontWeight.w700)),
                   ),
                   ...bottomItems.map((item) => _buildMenuItem(context, item)),
                 ],
@@ -193,7 +138,11 @@ class PCPESideMenu extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: PCPEColors.lightGray.withValues(alpha: 0.3))),
+                border: Border(
+                  top: BorderSide(
+                    color: PCPEColors.lightGray.withValues(alpha: 0.3),
+                  ),
+                ),
               ),
               child: Row(
                 children: [
@@ -209,20 +158,10 @@ class PCPESideMenu extends ConsumerWidget {
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text(
-                      'Sair do Sistema',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: PCPEColors.darkGray,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    child: const Text('Sair do Sistema', style: TextStyle(fontSize: 12, color: PCPEColors.darkGray, fontWeight: FontWeight.w500)),
                   ),
                   const Spacer(),
-                  Text(
-                    'v1.0.0',
-                    style: TextStyle(fontSize: 10, color: PCPEColors.mediumGray.withValues(alpha: 0.6)),
-                  ),
+                  Text('v1.0.0', style: TextStyle(fontSize: 10, color: PCPEColors.mediumGray.withValues(alpha: 0.6))),
                 ],
               ),
             ),
@@ -234,7 +173,6 @@ class PCPESideMenu extends ConsumerWidget {
 
   Widget _buildMenuItem(BuildContext context, SideMenuItem item) {
     final isActive = currentRoute == item.route;
-
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
@@ -242,7 +180,7 @@ class PCPESideMenu extends ConsumerWidget {
         color: isActive ? PCPEColors.primary.withValues(alpha: 0.08) : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
         border: isActive
-            ? Border(
+            ? const Border(
                 left: BorderSide(color: PCPEColors.primary, width: 3),
               )
             : null,
@@ -251,27 +189,16 @@ class PCPESideMenu extends ConsumerWidget {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(10),
         child: ListTile(
-        leading: Icon(
-          item.icon,
-          size: 20,
-          color: isActive ? PCPEColors.primary : PCPEColors.mediumGray,
-        ),
-        title: Text(
-          item.label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-            color: isActive ? PCPEColors.primary : PCPEColors.darkGray,
-          ),
-        ),
-        dense: true,
-        visualDensity: VisualDensity.compact,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-        onTap: () {
-          onNavigate(item.route);
-          Navigator.of(context).pop();
-        },
+          leading: Icon(item.icon, size: 20, color: isActive ? PCPEColors.primary : PCPEColors.mediumGray),
+          title: Text(item.label, style: TextStyle(fontSize: 13, fontWeight: isActive ? FontWeight.w600 : FontWeight.w400, color: isActive ? PCPEColors.primary : PCPEColors.darkGray)),
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          onTap: () {
+            onNavigate(item.route);
+            Navigator.of(context).pop();
+          },
         ),
       ),
     );

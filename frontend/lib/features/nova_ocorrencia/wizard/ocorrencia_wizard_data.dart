@@ -17,25 +17,51 @@ import '../../../shared/models/media_item.dart';
 class PessoaEnvolvida {
   String nome;
   String cpf;
+  String rg;
+  String orgaoExpedidor;
+  String naturalidade;
+  String filiacao;
   DateTime? dataNascimento;
   String telefone;
   String endereco;
   String tipo; // Vítima, Suspeito, Testemunha, Noticiante
   String nic;
   String observacoes;
+  bool vitimaNaoIdentificada;
+  Map<String, String> caracteristicas;
   final List<MediaItem> midias;
+  final List<MediaItem> documentos;
+  final List<String> telefones;
+  final List<String> enderecos;
+  String? gpsVitimaLat;
+  String? gpsVitimaLng;
 
   PessoaEnvolvida({
     this.nome = '',
     this.cpf = '',
+    this.rg = '',
+    this.orgaoExpedidor = '',
+    this.naturalidade = '',
+    this.filiacao = '',
     this.dataNascimento,
     this.telefone = '',
     this.endereco = '',
     this.tipo = 'Vítima',
     this.nic = '',
     this.observacoes = '',
+    this.vitimaNaoIdentificada = false,
+    Map<String, String>? caracteristicas,
     List<MediaItem>? midias,
-  }) : midias = midias ?? [];
+    List<MediaItem>? documentos,
+    List<String>? telefones,
+    List<String>? enderecos,
+    this.gpsVitimaLat,
+    this.gpsVitimaLng,
+  }) : midias = midias ?? [],
+       documentos = documentos ?? [],
+       telefones = telefones ?? [],
+       enderecos = enderecos ?? [],
+       caracteristicas = caracteristicas ?? {};
 }
 
 class VeiculoEnvolvido {
@@ -45,6 +71,12 @@ class VeiculoEnvolvido {
   String ano;
   String cor;
   String situacao;
+  String responsavel;
+  String destinatario;
+  String docDestinatario;
+  String vinculo;
+  String? gpsVeiculoLat;
+  String? gpsVeiculoLng;
   String observacoes;
   final List<MediaItem> midias;
 
@@ -55,6 +87,12 @@ class VeiculoEnvolvido {
     this.ano = '',
     this.cor = '',
     this.situacao = 'Apreendido',
+    this.responsavel = '',
+    this.destinatario = '',
+    this.docDestinatario = '',
+    this.vinculo = '',
+    this.gpsVeiculoLat,
+    this.gpsVeiculoLng,
     this.observacoes = '',
     List<MediaItem>? midias,
   }) : midias = midias ?? [];
@@ -65,6 +103,13 @@ class ObjetoRelacionado {
   String descricao;
   int quantidade;
   String situacao;
+  String destinacao;
+  String responsavel;
+  String destinatario;
+  String docDestinatario;
+  String vinculo;
+  String? gpsObjetoLat;
+  String? gpsObjetoLng;
   String observacoes;
   final List<MediaItem> midias;
 
@@ -73,6 +118,13 @@ class ObjetoRelacionado {
     this.descricao = '',
     this.quantidade = 1,
     this.situacao = 'Coletado',
+    this.destinacao = '',
+    this.responsavel = '',
+    this.destinatario = '',
+    this.docDestinatario = '',
+    this.vinculo = '',
+    this.gpsObjetoLat,
+    this.gpsObjetoLng,
     this.observacoes = '',
     List<MediaItem>? midias,
   }) : midias = midias ?? [];

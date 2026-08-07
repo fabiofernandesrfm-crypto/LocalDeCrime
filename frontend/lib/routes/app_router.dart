@@ -47,7 +47,10 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/ocorrencias',
-          builder: (context, state) => const OcorrenciasScreen(),
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>?;
+            return OcorrenciasScreen(statusInicial: extra?['status'] as String?);
+          },
         ),
         GoRoute(
           path: '/pessoas',

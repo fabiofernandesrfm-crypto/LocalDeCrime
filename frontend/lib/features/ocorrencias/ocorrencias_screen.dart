@@ -9,14 +9,21 @@ import '../../core/services/pdf/ocorrencia_pdf_service.dart';
 
 /// Central de Ocorrências (F27/F28).
 class OcorrenciasScreen extends StatefulWidget {
-  const OcorrenciasScreen({super.key});
+  final String? statusInicial;
+  const OcorrenciasScreen({super.key, this.statusInicial});
   @override
   State<OcorrenciasScreen> createState() => _OcorrenciasScreenState();
 }
 
 class _OcorrenciasScreenState extends State<OcorrenciasScreen> {
   final _buscaCtrl = TextEditingController();
-  String _filtroStatus = 'Todas';
+  late String _filtroStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _filtroStatus = widget.statusInicial ?? 'Todas';
+  }
 
   final List<Map<String, dynamic>> _ocorrencias = [
     {'protocolo': 'PCPE-2026-817120', 'nic': 'NIC 0004567', 'natureza': 'Homicídio Doloso Consumado', 'municipio': 'Recife', 'bairro': 'Boa Viagem', 'data': '06/08/2026', 'hora': '14:35', 'vitima': 'João da Silva', 'fotos': 18, 'alteracao': '12 minutos', 'status': 'Concluída'},
