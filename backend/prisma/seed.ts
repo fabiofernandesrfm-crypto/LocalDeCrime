@@ -8,10 +8,10 @@ async function main() {
 
   const senhaPadrao = await bcrypt.hash('admin123', 10);
 
-  // ── Município ──────────────────────────────────────────────
+  // ── 1. Municipio ───────────────────────────────────────────
   const municipio = await prisma.municipio.upsert({
     where: { id: 'hml-recife' },
-    update: {},
+    update: { codigoIbge: '261160', uf: 'PE' },
     create: {
       id: 'hml-recife',
       nome: 'Recife (HOMOLOGAÇÃO)',
@@ -20,21 +20,41 @@ async function main() {
     },
   });
 
-  // ── Unidade (Departamento — DHPP) ──────────────────────────
+  // ── 2. Unidade ─────────────────────────────────────────────
   const unidade = await prisma.unidade.upsert({
     where: { id: 'hml-dhpp-unisa' },
-    update: {},
+    update: {
+      tipo: 'DELEGACIA',
+      municipioId: municipio.id,
+    },
     create: {
       id: 'hml-dhpp-unisa',
       nome: 'DHPP — UNISA (HOMOLOGAÇÃO)',
       sigla: 'DHPP-HML',
-      tipo: 'DEPARTAMENTO',
+      tipo: 'DELEGACIA',
       municipioId: municipio.id,
     },
   });
   console.log(`  Unidade: ${unidade.nome}`);
 
-  // ── Usuário de Campo (FIELD_USER) ──────────────────────────
+  // ── 3. Delegacia ───────────────────────────────────────────
+  const delegacia = await prisma.delegacia.upsert({
+    where: { id: 'hml-delegacia-dhpp' },
+    update: {
+      unidadeId: unidade.id,
+      circunscricao: 'Homologação',
+      titulo: 'Delegacia DHPP HML',
+    },
+    create: {
+      id: 'hml-delegacia-dhpp',
+      unidadeId: unidade.id,
+      circunscricao: 'Homologação',
+      titulo: 'Delegacia DHPP HML',
+    },
+  });
+  console.log(`  Delegacia: ${delegacia.titulo}`);
+
+  // ── 4. Usuários ────────────────────────────────────────────
   const agente = await prisma.usuario.upsert({
     where: { matricula: '987654' },
     update: { unidadeId: unidade.id },
@@ -48,10 +68,7 @@ async function main() {
       unidadeId: unidade.id,
     },
   });
-  console.log(`  Usuário de Campo: ${agente.nome} (matrícula=${agente.matricula})`);
 
-  // ── Administrador Local (UNIT_ADMIN) ───────────────────────
-  // CHEFE_EQUIPE usado TEMPORARIAMENTE como equivalente ao futuro UNIT_ADMIN
   const chefe = await prisma.usuario.upsert({
     where: { matricula: '876543' },
     update: { unidadeId: unidade.id },
@@ -65,10 +82,7 @@ async function main() {
       unidadeId: unidade.id,
     },
   });
-  console.log(`  Administrador Local: ${chefe.nome} (matrícula=${chefe.matricula})`);
 
-  // ── Gestor (MANAGER) ───────────────────────────────────────
-  // ADMIN usado TEMPORARIAMENTE como equivalente ao futuro MANAGER
   const gestor = await prisma.usuario.upsert({
     where: { matricula: '765432' },
     update: { unidadeId: unidade.id },
@@ -82,19 +96,16 @@ async function main() {
       unidadeId: unidade.id,
     },
   });
-  console.log(`  Gestor: ${gestor.nome} (matrícula=${gestor.matricula})`);
 
-  console.log('\n✅ Seed concluído com sucesso.');
+  console.log('✅ Seed concluído com sucesso.');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📋 Credenciais de desenvolvimento/homologação:');
-  console.log(`  Unidade: ${unidade.nome}`);
-  console.log('  Senha padrão (todos):   admin123');
-  console.log(`  Usuário de Campo:       matrícula=${agente.matricula}`);
-  console.log(`  Administrador Local:    matrícula=${chefe.matricula}`);
-  console.log(`  Gestor:                 matrícula=${gestor.matricula}`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('⚠️  SEED APENAS PARA DESENVOLVIMENTO/HOMOLOGAÇÃO.');
-  console.log('⚠️  NÃO UTILIZAR ESTAS CREDENCIAIS EM PRODUÇÃO.');
+  console.log(`  Unidade:  ${unidade.nome}`);
+  console.log(`  Delegacia: ${delegacia.titulo}`);
+  console.log('  Senha (todos): admin123');
+  console.log(`  Campo:     matrícula=${agente.matricula}`);
+  console.log(`  Admin:     matrícula=${chefe.matricula}`);
+  console.log(`  Gestor:    matrícula=${gestor.matricula}`);
+  console.log('⚠️  APENAS PARA DESENVOLVIMENTO/HOMOLOGAÇÃO.');
 }
 
 main()

@@ -8,6 +8,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { AtendimentosModule } from './atendimentos/atendimentos.module';
+import { OcorrenciasModule } from './ocorrencias/ocorrencias.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AtendimentosModule } from './atendimentos/atendimentos.module';
     AuthModule,
     UsersModule,
     AtendimentosModule,
+    OcorrenciasModule,
   ],
   controllers: [AppController],
   providers: [
