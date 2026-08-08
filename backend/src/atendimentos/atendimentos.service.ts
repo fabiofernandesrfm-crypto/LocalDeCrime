@@ -8,7 +8,27 @@ export class AtendimentosService {
 
   async create(dto: CreateAtendimentoDto, currentUser: any): Promise<AtendimentoResponseDto> {
     if (!currentUser.unidadeId) {
-      throw new BadRequestException('Usuário não possui Unidade vinculada. Não é possível criar ocorrência.');
+      throw new BadRequestException('Usuário não possui Unidade vinculada.');
+    }
+
+    // 1. Buscar Ocorrencia pai e validar que pertence a mesma Unidade
+    const ocorrencia = await this.prisma.ocorrencia.findUnique({
+      where: { id: dto.ocorrenciaId },
+      include: { delegacia: true },
+    });
+
+    if (!ocorrencia) {
+      throw new NotFoundException('Ocorrência não encontrada.');
+    }
+
+    // Validar que a Ocorrencia pertence a mesma Unidade (via Delegacia)
+    const unidade = await this.prisma.unidade.findUnique({
+      where: { id: currentUser.unidadeId },
+      include: { delegacia: true },
+    });
+
+    if (!unidade?.delegacia || ocorrencia.delegaciaId !== unidade.delegacia.id) {
+      throw new NotFoundException('Ocorrência não pertence à sua Unidade.');
     }
 
     const atendimento = await this.prisma.atendimentoLocal.create({
@@ -36,13 +56,19 @@ export class AtendimentosService {
   }
 
   async findAll(currentUser: any): Promise<AtendimentoResponseDto[]> {
-    if (!currentUser.unidadeId) {
-      return [];
-    }
+    if (!currentUser.unidadeId) return [];
 
+    const unidade = await this.prisma.unidade.findUnique({
+      where: { id: currentUser.unidadeId },
+      include: { delegacia: true },
+    });
+
+    if (!unidade?.delegacia) return [];
+
+    // Filtrar atendimentos cuja Ocorrencia pertence a mesma Delegacia
     const atendimentos = await this.prisma.atendimentoLocal.findMany({
       where: {
-        usuario: { unidadeId: currentUser.unidadeId },
+        ocorrencia: { delegaciaId: unidade.delegacia.id },
       },
       orderBy: { criadoEm: 'desc' },
       take: 50,
@@ -55,16 +81,22 @@ export class AtendimentosService {
   async findOne(id: string, currentUser: any): Promise<AtendimentoResponseDto> {
     const atendimento = await this.prisma.atendimentoLocal.findUnique({
       where: { id },
-      include: { usuario: true },
+      include: { usuario: true, ocorrencia: { include: { delegacia: true } } },
     });
 
     if (!atendimento) {
       throw new NotFoundException('Atendimento não encontrado.');
     }
 
-    // Isolamento por Unidade
-    if (currentUser.unidadeId && atendimento.usuario?.unidadeId !== currentUser.unidadeId) {
-      throw new NotFoundException('Atendimento não encontrado.');
+    // Isolamento: Atendimento → Ocorrencia → Delegacia → Unidade do usuario
+    if (currentUser.unidadeId) {
+      const unidade = await this.prisma.unidade.findUnique({
+        where: { id: currentUser.unidadeId },
+        include: { delegacia: true },
+      });
+      if (unidade?.delegacia && atendimento.ocorrencia?.delegaciaId !== unidade.delegacia.id) {
+        throw new NotFoundException('Atendimento não pertence à sua Unidade.');
+      }
     }
 
     return this.mapToResponse(atendimento);
@@ -73,21 +105,30 @@ export class AtendimentosService {
   async update(id: string, dto: UpdateAtendimentoDto, currentUser: any): Promise<AtendimentoResponseDto> {
     const atendimento = await this.prisma.atendimentoLocal.findUnique({
       where: { id },
-      include: { usuario: true },
+      include: { usuario: true, ocorrencia: { include: { delegacia: true } } },
     });
 
-    if (!atendimento) {
-      throw new NotFoundException('Atendimento não encontrado.');
-    }
+    if (!atendimento) throw new NotFoundException('Atendimento não encontrado.');
 
     // Isolamento por Unidade
-    if (currentUser.unidadeId && atendimento.usuario?.unidadeId !== currentUser.unidadeId) {
-      throw new NotFoundException('Atendimento não encontrado.');
+    if (currentUser.unidadeId) {
+      const unidade = await this.prisma.unidade.findUnique({
+        where: { id: currentUser.unidadeId },
+        include: { delegacia: true },
+      });
+      if (unidade?.delegacia && atendimento.ocorrencia?.delegaciaId !== unidade.delegacia.id) {
+        throw new NotFoundException('Atendimento não pertence à sua Unidade.');
+      }
     }
 
-    // Somente rascunhos são editáveis
+    // Somente rascunhos sao editaveis
     if (atendimento.status !== 'ABERTO') {
       throw new BadRequestException('Somente atendimentos em Rascunho (ABERTO) podem ser editados.');
+    }
+
+    // Ocorrencia pai tambem deve estar editavel
+    if (atendimento.ocorrencia?.status !== 'ABERTA') {
+      throw new BadRequestException('A Ocorrência vinculada não está mais editável.');
     }
 
     const updated = await this.prisma.atendimentoLocal.update({
