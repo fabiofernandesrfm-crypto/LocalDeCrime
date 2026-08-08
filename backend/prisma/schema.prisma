@@ -66,6 +66,7 @@ enum TipoEnvolvimento {
   VITIMA
   TESTEMUNHA
   SUSPEITO
+  NOTICIANTE
   PROPRIETARIO
   RESPONSAVEL
   OUTRO
@@ -638,7 +639,9 @@ model EquipeUsuario {
 /// Pessoa envolvida na ocorrência (vítima, testemunha, suspeito, etc.)
 model PessoaEnvolvida {
   id               String           @id @default(uuid())
-  nome             String
+  nome             String?
+  identificada     Boolean          @default(true)
+  nic              String?
   cpf              String?
   rg               String?
   sexo             Sexo             @default(NAO_INFORMADO)
