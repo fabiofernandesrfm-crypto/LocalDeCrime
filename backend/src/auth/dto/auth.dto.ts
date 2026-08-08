@@ -28,5 +28,6 @@ export class AuthResponseDto {
     email: string;
     cargo: string | null;
     role: string;
+    unidadeId: string | null;
   };
 }

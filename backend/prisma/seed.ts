@@ -4,74 +4,102 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminExists = await prisma.usuario.findUnique({
-    where: { matricula: '000001' },
-  });
-
-  if (adminExists) {
-    console.log('🌱 Seed já executado anteriormente. Pulando...');
-    return;
-  }
+  console.log('🌱 Iniciando seed de desenvolvimento/homologação...');
 
   const senhaPadrao = await bcrypt.hash('admin123', 10);
 
-  // Admin
-  await prisma.usuario.create({
-    data: {
-      matricula: '000001',
-      nome: 'Administrador do Sistema',
-      email: 'admin@pcpe.gov.br',
-      senha: senhaPadrao,
-      cargo: 'Coordenador de TI',
-      role: Role.ADMIN,
+  // ── Município ──────────────────────────────────────────────
+  const municipio = await prisma.municipio.upsert({
+    where: { id: 'hml-recife' },
+    update: {},
+    create: {
+      id: 'hml-recife',
+      nome: 'Recife (HOMOLOGAÇÃO)',
+      codigoIbge: '261160',
+      uf: 'PE',
     },
   });
 
-  // Usuários de exemplo
-  await prisma.usuario.create({
-    data: {
-      matricula: '123456',
-      nome: 'João Silva',
-      email: 'joao.silva@pcpe.gov.br',
-      senha: senhaPadrao,
-      cargo: 'Perito Criminal',
-      role: Role.PERITO,
+  // ── Unidade (Departamento — DHPP) ──────────────────────────
+  const unidade = await prisma.unidade.upsert({
+    where: { id: 'hml-dhpp-unisa' },
+    update: {},
+    create: {
+      id: 'hml-dhpp-unisa',
+      nome: 'DHPP — UNISA (HOMOLOGAÇÃO)',
+      sigla: 'DHPP-HML',
+      tipo: 'DEPARTAMENTO',
+      municipioId: municipio.id,
     },
   });
+  console.log(`  Unidade: ${unidade.nome}`);
 
-  await prisma.usuario.create({
-    data: {
-      matricula: '234567',
-      nome: 'Maria Santos',
-      email: 'maria.santos@pcpe.gov.br',
+  // ── Usuário de Campo (FIELD_USER) ──────────────────────────
+  const agente = await prisma.usuario.upsert({
+    where: { matricula: '987654' },
+    update: { unidadeId: unidade.id },
+    create: {
+      matricula: '987654',
+      nome: 'Ag. Campo Homologação',
+      email: 'agente.campo@homologacao.pcpe.gov.br',
       senha: senhaPadrao,
-      cargo: 'Chefe de Equipe',
-      role: Role.CHEFE_EQUIPE,
-    },
-  });
-
-  await prisma.usuario.create({
-    data: {
-      matricula: '345678',
-      nome: 'Carlos Oliveira',
-      email: 'carlos.oliveira@pcpe.gov.br',
-      senha: senhaPadrao,
-      cargo: 'Agente de Campo',
+      cargo: 'Agente de Polícia Civil',
       role: Role.AGENTE,
+      unidadeId: unidade.id,
     },
   });
+  console.log(`  Usuário de Campo: ${agente.nome} (matrícula=${agente.matricula})`);
 
-  console.log('🌱 Seed executado com sucesso!');
-  console.log('📋 Usuários criados:');
-  console.log('  Admin:    matrícula=000001, senha=admin123');
-  console.log('  Perito:   matrícula=123456, senha=admin123');
-  console.log('  Chefe:    matrícula=234567, senha=admin123');
-  console.log('  Agente:   matrícula=345678, senha=admin123');
+  // ── Administrador Local (UNIT_ADMIN) ───────────────────────
+  // CHEFE_EQUIPE usado TEMPORARIAMENTE como equivalente ao futuro UNIT_ADMIN
+  const chefe = await prisma.usuario.upsert({
+    where: { matricula: '876543' },
+    update: { unidadeId: unidade.id },
+    create: {
+      matricula: '876543',
+      nome: 'Adm. Local Homologação',
+      email: 'adm.local@homologacao.pcpe.gov.br',
+      senha: senhaPadrao,
+      cargo: 'Chefe de Unidade',
+      role: Role.CHEFE_EQUIPE,
+      unidadeId: unidade.id,
+    },
+  });
+  console.log(`  Administrador Local: ${chefe.nome} (matrícula=${chefe.matricula})`);
+
+  // ── Gestor (MANAGER) ───────────────────────────────────────
+  // ADMIN usado TEMPORARIAMENTE como equivalente ao futuro MANAGER
+  const gestor = await prisma.usuario.upsert({
+    where: { matricula: '765432' },
+    update: { unidadeId: unidade.id },
+    create: {
+      matricula: '765432',
+      nome: 'Gestor Homologação',
+      email: 'gestor@homologacao.pcpe.gov.br',
+      senha: senhaPadrao,
+      cargo: 'Gestor de Departamento',
+      role: Role.ADMIN,
+      unidadeId: unidade.id,
+    },
+  });
+  console.log(`  Gestor: ${gestor.nome} (matrícula=${gestor.matricula})`);
+
+  console.log('\n✅ Seed concluído com sucesso.');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('📋 Credenciais de desenvolvimento/homologação:');
+  console.log(`  Unidade: ${unidade.nome}`);
+  console.log('  Senha padrão (todos):   admin123');
+  console.log(`  Usuário de Campo:       matrícula=${agente.matricula}`);
+  console.log(`  Administrador Local:    matrícula=${chefe.matricula}`);
+  console.log(`  Gestor:                 matrícula=${gestor.matricula}`);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('⚠️  SEED APENAS PARA DESENVOLVIMENTO/HOMOLOGAÇÃO.');
+  console.log('⚠️  NÃO UTILIZAR ESTAS CREDENCIAIS EM PRODUÇÃO.');
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('❌ Erro no seed:', e);
     process.exit(1);
   })
   .finally(async () => {
