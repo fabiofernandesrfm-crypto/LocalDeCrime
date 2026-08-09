@@ -10,6 +10,7 @@ import { UsersModule } from './users/users.module';
 import { AtendimentosModule } from './atendimentos/atendimentos.module';
 import { OcorrenciasModule } from './ocorrencias/ocorrencias.module';
 import { PessoasModule } from './pessoas/pessoas.module';
+import { VeiculosModule } from './veiculos/veiculos.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { PessoasModule } from './pessoas/pessoas.module';
     AtendimentosModule,
     OcorrenciasModule,
     PessoasModule,
+    VeiculosModule,
   ],
   controllers: [AppController],
   providers: [

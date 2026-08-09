@@ -290,6 +290,7 @@ model Usuario {
   backupsRegistro        BackupRegistro[]
   logsSistema            LogSistema[]
   policiaisParticipantes PolicialParticipante[]
+  veiculosOcorrencia     VeiculoOcorrencia[]
 
   @@index([unidadeId])
   @@index([ativo])
@@ -521,8 +522,9 @@ model Ocorrencia {
   usuario   Usuario @relation(fields: [usuarioId], references: [id])
 
   atendimentosLocais AtendimentoLocal[]
-  pessoasEnvolvidas  PessoaEnvolvida[]
-  linhasTempo        LinhaTempo[]
+  pessoasEnvolvidas     PessoaEnvolvida[]
+  linhasTempo           LinhaTempo[]
+  veiculosOcorrencia    VeiculoOcorrencia[]
 
   @@index([numeroBo])
   @@index([municipioId])
@@ -1028,6 +1030,45 @@ model Veiculo {
   @@index([chassi])
   @@index([deletadoEm])
   @@map("veiculos")
+}
+
+/// Veículo vinculado diretamente à Ocorrência — fluxo do Usuário de Campo.
+///
+/// DIFERENÇA para o model Veiculo (legado):
+///   - Veiculo         → vinculado a AtendimentoLocal (legado)
+///   - VeiculoOcorrencia → vinculado diretamente a Ocorrencia (Elementos do Fato)
+///
+/// Ambos coexistem. VeiculoOcorrencia é o model oficial deste fluxo.
+model VeiculoOcorrencia {
+  id              String   @id @default(uuid())
+  placa           String?
+  marca           String?
+  modelo          String?
+  ano             String?
+  cor             String?
+  situacao        String?
+  destinacao      String?
+  responsavel     String?  /// responsável operacional pelo recolhimento (campo de negócio)
+  destinatario    String?
+  docDestinatario String?  @map("doc_destinatario")
+  vinculo         String?
+  gpsLat          Float?   @map("gps_lat")
+  gpsLng          Float?   @map("gps_lng")
+  observacoes     String?
+  criadoEm        DateTime @default(now()) @map("criado_em")
+  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+
+  // Autoria do registro (quem cadastrou no sistema)
+  criadoPorId String  @map("criado_por_id")
+  criadoPor   Usuario @relation(fields: [criadoPorId], references: [id])
+
+  ocorrenciaId String     @map("ocorrencia_id")
+  ocorrencia   Ocorrencia @relation(fields: [ocorrenciaId], references: [id])
+
+  @@index([ocorrenciaId])
+  @@index([placa])
+  @@index([criadoPorId])
+  @@map("veiculos_ocorrencia")
 }
 
 // ============================================================================
