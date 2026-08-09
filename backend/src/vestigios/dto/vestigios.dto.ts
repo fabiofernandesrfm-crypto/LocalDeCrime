@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsNumber, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsNumber, IsDateString, Min, Max } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateVestigioDto {
@@ -27,4 +27,32 @@ export class UpdateVestigioDto {
   @ApiPropertyOptional() @IsOptional() @IsString() situacao?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() destinacao?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() observacoes?: string;
+  // Acondicionamento
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() acondicionado?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsString() tipoAcondicionamento?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() descricaoAcondicionamento?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() acondicionadoPor?: string;
+  // Lacre
+  @ApiPropertyOptional() @IsOptional() @IsString() numeroLacre?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() tipoLacre?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() lacradoPor?: string;
+}
+
+export class CreateMovimentacaoCustodiaDto {
+  @ApiPropertyOptional({ example: 'COLETA' })
+  @IsString() tipoMovimentacao!: string;
+  @ApiPropertyOptional({ example: 'Local do crime' })
+  @IsOptional() @IsString() origem?: string;
+  @ApiPropertyOptional({ example: 'Viatura' })
+  @IsOptional() @IsString() destino?: string;
+  @ApiPropertyOptional({ example: 'Ag. Silva' })
+  @IsOptional() @IsString() entreguePor?: string;
+  @ApiPropertyOptional({ example: 'Dr. Plantão' })
+  @IsOptional() @IsString() recebidoPor?: string;
+  @ApiPropertyOptional()
+  @IsOptional() @IsString() documentoRecebedor?: string;
+  @ApiPropertyOptional()
+  @IsOptional() @IsString() observacoes?: string;
+  @ApiPropertyOptional({ description: 'Data/hora do evento físico (opcional, default now())' })
+  @IsOptional() @IsDateString() movimentadoEm?: string;
 }

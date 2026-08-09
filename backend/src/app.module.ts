@@ -13,6 +13,8 @@ import { PessoasModule } from './pessoas/pessoas.module';
 import { VeiculosModule } from './veiculos/veiculos.module';
 import { ObjetosModule } from './objetos/objetos.module';
 import { VestigiosModule } from './vestigios/vestigios.module';
+import { UploadModule } from './upload/upload.module';
+import { FotografiasModule } from './fotografias/fotografias.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { VestigiosModule } from './vestigios/vestigios.module';
     VeiculosModule,
     ObjetosModule,
     VestigiosModule,
+    UploadModule,
+    FotografiasModule,
   ],
   controllers: [AppController],
   providers: [

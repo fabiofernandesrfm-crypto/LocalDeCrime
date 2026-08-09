@@ -15,8 +15,8 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should identify the API', () => {
+      expect(appController.getInfo()).toBe('Sistema de Registro de Atendimento em Local de Crime API');
     });
   });
 });

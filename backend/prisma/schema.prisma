@@ -293,6 +293,8 @@ model Usuario {
   veiculosOcorrencia     VeiculoOcorrencia[]
   objetosOcorrencia      ObjetoOcorrencia[]
   vestigiosOcorrencia    VestigioOcorrencia[]
+  movimentacoesCustodia  MovimentacaoCustodiaVestigio[]
+  fotografiasOcorrencia  FotografiaOcorrencia[]
 
   @@index([unidadeId])
   @@index([ativo])
@@ -529,6 +531,7 @@ model Ocorrencia {
   veiculosOcorrencia    VeiculoOcorrencia[]
   objetosOcorrencia     ObjetoOcorrencia[]
   vestigiosOcorrencia   VestigioOcorrencia[]
+  fotografiasOcorrencia FotografiaOcorrencia[]
 
   @@index([numeroBo])
   @@index([municipioId])
@@ -676,6 +679,7 @@ model PessoaEnvolvida {
   telefonesPessoa TelefonePessoa[]
   enderecosPessoa EnderecoPessoa[]
   objetosOcorrencia ObjetoOcorrencia[]
+  fotografiasOcorrencia FotografiaOcorrencia[]
 
   @@index([deletadoEm])
   @@map("pessoas_envolvidas")
@@ -1072,6 +1076,8 @@ model ObjetoOcorrencia {
   pessoaId String?          @map("pessoa_id")
   pessoa   PessoaEnvolvida? @relation(fields: [pessoaId], references: [id])
 
+  fotografiasOcorrencia FotografiaOcorrencia[]
+
   @@index([ocorrenciaId])
   @@index([criadoPorId])
   @@index([pessoaId])
@@ -1096,6 +1102,16 @@ model VestigioOcorrencia {
   situacao             String?
   destinacao           String?
   observacoes          String?
+  // Acondicionamento + Lacre
+  acondicionado         Boolean   @default(false)
+  tipoAcondicionamento  String?   @map("tipo_acondicionamento")
+  descricaoAcondicionamento String? @map("descricao_acondicionamento")
+  acondicionadoPor      String?   @map("acondicionado_por")
+  acondicionadoEm       DateTime? @map("acondicionado_em")
+  numeroLacre           String?   @map("numero_lacre")
+  tipoLacre             String?   @map("tipo_lacre")
+  lacradoPor            String?   @map("lacrado_por")
+  lacradoEm             DateTime? @map("lacrado_em")
   criadoEm             DateTime @default(now()) @map("criado_em")
   atualizadoEm         DateTime @updatedAt @map("atualizado_em")
 
@@ -1105,9 +1121,80 @@ model VestigioOcorrencia {
   ocorrenciaId String     @map("ocorrencia_id")
   ocorrencia   Ocorrencia @relation(fields: [ocorrenciaId], references: [id])
 
+  movimentacoesCustodia MovimentacaoCustodiaVestigio[]
+  fotografiasOcorrencia FotografiaOcorrencia[]
+
   @@index([ocorrenciaId])
   @@index([criadoPorId])
   @@map("vestigios_ocorrencia")
+}
+
+/// Movimentação da cadeia de custódia de um VestigioOcorrencia (histórico imutável).
+/// Sem PATCH/DELETE — correções futuras serão por nova movimentação de retificação.
+model MovimentacaoCustodiaVestigio {
+  id               String   @id @default(uuid())
+  tipoMovimentacao String   @map("tipo_movimentacao")
+  origem           String?
+  destino          String?
+  entreguePor      String?  @map("entregue_por")
+  recebidoPor      String?  @map("recebido_por")
+  documentoRecebedor String? @map("documento_recebedor")
+  observacoes      String?
+  movimentadoEm    DateTime @default(now()) @map("movimentado_em")  /// data/hora do evento físico
+  criadoEm         DateTime @default(now()) @map("criado_em")       /// data/hora do registro no sistema
+
+  vestigioId String             @map("vestigio_id")
+  vestigio   VestigioOcorrencia @relation(fields: [vestigioId], references: [id])
+
+  registradoPorId String  @map("registrado_por_id")
+  registradoPor   Usuario @relation(fields: [registradoPorId], references: [id])
+
+  @@index([vestigioId])
+  @@index([registradoPorId])
+  @@index([movimentadoEm])
+  @@map("movimentacoes_custodia_vestigio")
+}
+
+/// Fotografia vinculada diretamente à Ocorrência — fluxo do Usuário de Campo.
+/// Vínculo opcional a PessoaEnvolvida, VeiculoOcorrencia, ObjetoOcorrencia ou VestigioOcorrencia.
+/// Apenas UM vínculo específico por foto (exclusivo).
+model FotografiaOcorrencia {
+  id                String   @id @default(uuid())
+  storageKey        String   @map("storage_key")
+  arquivoOriginalNome String  @map("arquivo_original_nome")
+  mimeType          String   @map("mime_type")
+  tamanhoBytes      Int      @map("tamanho_bytes")
+  legenda           String?
+  ordem             Int      @default(0)
+  capturadoEm       DateTime? @map("capturado_em")
+  gpsLat            Float?   @map("gps_lat")
+  gpsLng            Float?   @map("gps_lng")
+  criadoEm          DateTime @default(now()) @map("criado_em")
+  atualizadoEm      DateTime @updatedAt @map("atualizado_em")
+
+  criadoPorId String  @map("criado_por_id")
+  criadoPor   Usuario @relation(fields: [criadoPorId], references: [id])
+
+  ocorrenciaId String     @map("ocorrencia_id")
+  ocorrencia   Ocorrencia @relation(fields: [ocorrenciaId], references: [id])
+
+  // FKs opcionais (apenas UM deve ser preenchido)
+  pessoaId  String?          @map("pessoa_id")
+  pessoa    PessoaEnvolvida? @relation(fields: [pessoaId], references: [id])
+  veiculoId String?          @map("veiculo_id")
+  veiculo   VeiculoOcorrencia? @relation(fields: [veiculoId], references: [id])
+  objetoId  String?          @map("objeto_id")
+  objeto    ObjetoOcorrencia?  @relation(fields: [objetoId], references: [id])
+  vestigioId String?         @map("vestigio_id")
+  vestigio   VestigioOcorrencia? @relation(fields: [vestigioId], references: [id])
+
+  @@index([ocorrenciaId])
+  @@index([criadoPorId])
+  @@index([pessoaId])
+  @@index([veiculoId])
+  @@index([objetoId])
+  @@index([vestigioId])
+  @@map("fotografias_ocorrencia")
 }
 
 /// Veículo vinculado diretamente à Ocorrência — fluxo do Usuário de Campo.
@@ -1142,6 +1229,8 @@ model VeiculoOcorrencia {
 
   ocorrenciaId String     @map("ocorrencia_id")
   ocorrencia   Ocorrencia @relation(fields: [ocorrenciaId], references: [id])
+
+  fotografiasOcorrencia FotografiaOcorrencia[]
 
   @@index([ocorrenciaId])
   @@index([placa])
