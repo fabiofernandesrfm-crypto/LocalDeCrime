@@ -666,8 +666,50 @@ model PessoaEnvolvida {
   @@index([cpf])
   @@index([municipioId])
   @@index([tipoEnvolvimento])
+  // relações 1:N
+  telefonesPessoa TelefonePessoa[]
+  enderecosPessoa EnderecoPessoa[]
+
   @@index([deletadoEm])
   @@map("pessoas_envolvidas")
+}
+
+/// Telefone 1:N vinculado a uma PessoaEnvolvida
+model TelefonePessoa {
+  id        String   @id @default(uuid())
+  numero    String
+  tipo      String?
+  observacao String?
+  criadoEm  DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  pessoaId        String          @map("pessoa_id")
+  pessoaEnvolvida PessoaEnvolvida @relation(fields: [pessoaId], references: [id])
+
+  @@index([pessoaId])
+  @@map("telefones_pessoa")
+}
+
+/// Endereço 1:N vinculado a uma PessoaEnvolvida
+model EnderecoPessoa {
+  id          String   @id @default(uuid())
+  logradouro  String
+  numero      String?
+  complemento String?
+  bairro      String?
+  cidade      String?
+  estado      String?
+  cep         String?
+  tipo        String?
+  observacao  String?
+  criadoEm    DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  pessoaId        String          @map("pessoa_id")
+  pessoaEnvolvida PessoaEnvolvida @relation(fields: [pessoaId], references: [id])
+
+  @@index([pessoaId])
+  @@map("enderecos_pessoa")
 }
 
 /// Policial participante do atendimento (além da equipe formal)
