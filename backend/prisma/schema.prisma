@@ -291,6 +291,7 @@ model Usuario {
   logsSistema            LogSistema[]
   policiaisParticipantes PolicialParticipante[]
   veiculosOcorrencia     VeiculoOcorrencia[]
+  objetosOcorrencia      ObjetoOcorrencia[]
 
   @@index([unidadeId])
   @@index([ativo])
@@ -525,6 +526,7 @@ model Ocorrencia {
   pessoasEnvolvidas     PessoaEnvolvida[]
   linhasTempo           LinhaTempo[]
   veiculosOcorrencia    VeiculoOcorrencia[]
+  objetosOcorrencia     ObjetoOcorrencia[]
 
   @@index([numeroBo])
   @@index([municipioId])
@@ -671,6 +673,7 @@ model PessoaEnvolvida {
   // relações 1:N
   telefonesPessoa TelefonePessoa[]
   enderecosPessoa EnderecoPessoa[]
+  objetosOcorrencia ObjetoOcorrencia[]
 
   @@index([deletadoEm])
   @@map("pessoas_envolvidas")
@@ -1030,6 +1033,47 @@ model Veiculo {
   @@index([chassi])
   @@index([deletadoEm])
   @@map("veiculos")
+}
+
+/// Objeto vinculado diretamente à Ocorrência — fluxo do Usuário de Campo (Elementos do Fato).
+///
+/// DIFERENÇA para o model Objeto (legado):
+///   - Objeto           → vinculado a AtendimentoLocal (legado, categoria/fotos)
+///   - ObjetoOcorrencia → vinculado diretamente a Ocorrencia com coleta/destinação
+model ObjetoOcorrencia {
+  id              String   @id @default(uuid())
+  categoria       String?  /// tipo/categoria do objeto
+  descricao       String?
+  marca           String?
+  modelo          String?
+  numeroSerie     String?  @map("numero_serie")
+  quantidade      Int      @default(1)
+  caracteristicas String?
+  situacao        String?
+  destinacao      String?
+  coletadoPor     String?  @map("coletado_por")  /// responsável físico pela coleta (campo de negócio)
+  destinatario    String?
+  docDestinatario String?  @map("doc_destinatario")
+  vinculoDest     String?  @map("vinculo_dest")
+  gpsLat          Float?   @map("gps_lat")
+  gpsLng          Float?   @map("gps_lng")
+  observacoes     String?
+  criadoEm        DateTime @default(now()) @map("criado_em")
+  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+
+  criadoPorId String  @map("criado_por_id")
+  criadoPor   Usuario @relation(fields: [criadoPorId], references: [id])
+
+  ocorrenciaId String     @map("ocorrencia_id")
+  ocorrencia   Ocorrencia @relation(fields: [ocorrenciaId], references: [id])
+
+  pessoaId String?          @map("pessoa_id")
+  pessoa   PessoaEnvolvida? @relation(fields: [pessoaId], references: [id])
+
+  @@index([ocorrenciaId])
+  @@index([criadoPorId])
+  @@index([pessoaId])
+  @@map("objetos_ocorrencia")
 }
 
 /// Veículo vinculado diretamente à Ocorrência — fluxo do Usuário de Campo.

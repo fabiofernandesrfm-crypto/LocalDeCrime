@@ -11,6 +11,7 @@ import { AtendimentosModule } from './atendimentos/atendimentos.module';
 import { OcorrenciasModule } from './ocorrencias/ocorrencias.module';
 import { PessoasModule } from './pessoas/pessoas.module';
 import { VeiculosModule } from './veiculos/veiculos.module';
+import { ObjetosModule } from './objetos/objetos.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { VeiculosModule } from './veiculos/veiculos.module';
     OcorrenciasModule,
     PessoasModule,
     VeiculosModule,
+    ObjetosModule,
   ],
   controllers: [AppController],
   providers: [
