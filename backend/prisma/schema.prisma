@@ -292,6 +292,7 @@ model Usuario {
   policiaisParticipantes PolicialParticipante[]
   veiculosOcorrencia     VeiculoOcorrencia[]
   objetosOcorrencia      ObjetoOcorrencia[]
+  vestigiosOcorrencia    VestigioOcorrencia[]
 
   @@index([unidadeId])
   @@index([ativo])
@@ -527,6 +528,7 @@ model Ocorrencia {
   linhasTempo           LinhaTempo[]
   veiculosOcorrencia    VeiculoOcorrencia[]
   objetosOcorrencia     ObjetoOcorrencia[]
+  vestigiosOcorrencia   VestigioOcorrencia[]
 
   @@index([numeroBo])
   @@index([municipioId])
@@ -1074,6 +1076,38 @@ model ObjetoOcorrencia {
   @@index([criadoPorId])
   @@index([pessoaId])
   @@map("objetos_ocorrencia")
+}
+
+/// Vestígio vinculado diretamente à Ocorrência — fluxo do Usuário de Campo (Elementos do Fato).
+///
+/// DIFERENÇA para o model Vestigio (legado):
+///   - Vestigio           → vinculado a AtendimentoLocal (legado, cadeia de custódia, lacres)
+///   - VestigioOcorrencia → vinculado diretamente a Ocorrencia com coleta/localização básica
+model VestigioOcorrencia {
+  id                   String   @id @default(uuid())
+  categoria            String?  /// tipo/categoria do vestigio
+  descricao            String?
+  caracteristicas      String?
+  localizacaoDescricao String?  @map("localizacao_descricao")
+  gpsLat               Float?   @map("gps_lat")
+  gpsLng               Float?   @map("gps_lng")
+  coletado             Boolean  @default(false)
+  coletadoPor          String?  @map("coletado_por")  /// responsável físico pela coleta
+  situacao             String?
+  destinacao           String?
+  observacoes          String?
+  criadoEm             DateTime @default(now()) @map("criado_em")
+  atualizadoEm         DateTime @updatedAt @map("atualizado_em")
+
+  criadoPorId String  @map("criado_por_id")
+  criadoPor   Usuario @relation(fields: [criadoPorId], references: [id])
+
+  ocorrenciaId String     @map("ocorrencia_id")
+  ocorrencia   Ocorrencia @relation(fields: [ocorrenciaId], references: [id])
+
+  @@index([ocorrenciaId])
+  @@index([criadoPorId])
+  @@map("vestigios_ocorrencia")
 }
 
 /// Veículo vinculado diretamente à Ocorrência — fluxo do Usuário de Campo.

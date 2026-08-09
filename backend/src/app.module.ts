@@ -12,6 +12,7 @@ import { OcorrenciasModule } from './ocorrencias/ocorrencias.module';
 import { PessoasModule } from './pessoas/pessoas.module';
 import { VeiculosModule } from './veiculos/veiculos.module';
 import { ObjetosModule } from './objetos/objetos.module';
+import { VestigiosModule } from './vestigios/vestigios.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ObjetosModule } from './objetos/objetos.module';
     PessoasModule,
     VeiculosModule,
     ObjetosModule,
+    VestigiosModule,
   ],
   controllers: [AppController],
   providers: [
