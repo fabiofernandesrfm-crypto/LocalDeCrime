@@ -295,6 +295,7 @@ model Usuario {
   vestigiosOcorrencia    VestigioOcorrencia[]
   movimentacoesCustodia  MovimentacaoCustodiaVestigio[]
   fotografiasOcorrencia  FotografiaOcorrencia[]
+  anexosOcorrencia       AnexoOcorrencia[]
 
   @@index([unidadeId])
   @@index([ativo])
@@ -532,6 +533,7 @@ model Ocorrencia {
   objetosOcorrencia     ObjetoOcorrencia[]
   vestigiosOcorrencia   VestigioOcorrencia[]
   fotografiasOcorrencia FotografiaOcorrencia[]
+  anexosOcorrencia      AnexoOcorrencia[]
 
   @@index([numeroBo])
   @@index([municipioId])
@@ -680,6 +682,7 @@ model PessoaEnvolvida {
   enderecosPessoa EnderecoPessoa[]
   objetosOcorrencia ObjetoOcorrencia[]
   fotografiasOcorrencia FotografiaOcorrencia[]
+  anexosOcorrencia      AnexoOcorrencia[]
 
   @@index([deletadoEm])
   @@map("pessoas_envolvidas")
@@ -1077,6 +1080,7 @@ model ObjetoOcorrencia {
   pessoa   PessoaEnvolvida? @relation(fields: [pessoaId], references: [id])
 
   fotografiasOcorrencia FotografiaOcorrencia[]
+  anexosOcorrencia      AnexoOcorrencia[]
 
   @@index([ocorrenciaId])
   @@index([criadoPorId])
@@ -1123,6 +1127,7 @@ model VestigioOcorrencia {
 
   movimentacoesCustodia MovimentacaoCustodiaVestigio[]
   fotografiasOcorrencia FotografiaOcorrencia[]
+  anexosOcorrencia      AnexoOcorrencia[]
 
   @@index([ocorrenciaId])
   @@index([criadoPorId])
@@ -1197,6 +1202,40 @@ model FotografiaOcorrencia {
   @@map("fotografias_ocorrencia")
 }
 
+/// Anexo / Documento vinculado diretamente à Ocorrência.
+/// Vínculo opcional a PessoaEnvolvida, VeiculoOcorrencia, ObjetoOcorrencia ou VestigioOcorrencia.
+/// Apenas UM vínculo específico por anexo (exclusivo).
+model AnexoOcorrencia {
+  id                  String   @id @default(uuid())
+  storageKey          String   @map("storage_key")
+  arquivoOriginalNome String   @map("arquivo_original_nome")
+  mimeType            String   @map("mime_type")
+  tamanhoBytes        Int      @map("tamanho_bytes")
+  categoria           String?
+  descricao           String?
+  criadoEm            DateTime @default(now()) @map("criado_em")
+  atualizadoEm        DateTime @updatedAt @map("atualizado_em")
+
+  criadoPorId String  @map("criado_por_id")
+  criadoPor   Usuario @relation(fields: [criadoPorId], references: [id])
+
+  ocorrenciaId String     @map("ocorrencia_id")
+  ocorrencia   Ocorrencia @relation(fields: [ocorrenciaId], references: [id])
+
+  pessoaId  String?          @map("pessoa_id")
+  pessoa    PessoaEnvolvida? @relation(fields: [pessoaId], references: [id])
+  veiculoId String?          @map("veiculo_id")
+  veiculo   VeiculoOcorrencia? @relation(fields: [veiculoId], references: [id])
+  objetoId  String?          @map("objeto_id")
+  objeto    ObjetoOcorrencia?  @relation(fields: [objetoId], references: [id])
+  vestigioId String?         @map("vestigio_id")
+  vestigio   VestigioOcorrencia? @relation(fields: [vestigioId], references: [id])
+
+  @@index([ocorrenciaId])
+  @@index([criadoPorId])
+  @@map("anexos_ocorrencia")
+}
+
 /// Veículo vinculado diretamente à Ocorrência — fluxo do Usuário de Campo.
 ///
 /// DIFERENÇA para o model Veiculo (legado):
@@ -1231,6 +1270,7 @@ model VeiculoOcorrencia {
   ocorrencia   Ocorrencia @relation(fields: [ocorrenciaId], references: [id])
 
   fotografiasOcorrencia FotografiaOcorrencia[]
+  anexosOcorrencia      AnexoOcorrencia[]
 
   @@index([ocorrenciaId])
   @@index([placa])

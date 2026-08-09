@@ -15,6 +15,7 @@ import { ObjetosModule } from './objetos/objetos.module';
 import { VestigiosModule } from './vestigios/vestigios.module';
 import { UploadModule } from './upload/upload.module';
 import { FotografiasModule } from './fotografias/fotografias.module';
+import { AnexosModule } from './anexos/anexos.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { FotografiasModule } from './fotografias/fotografias.module';
     VestigiosModule,
     UploadModule,
     FotografiasModule,
+    AnexosModule,
   ],
   controllers: [AppController],
   providers: [
