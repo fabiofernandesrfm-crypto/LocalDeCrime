@@ -16,6 +16,7 @@ import { VestigiosModule } from './vestigios/vestigios.module';
 import { UploadModule } from './upload/upload.module';
 import { FotografiasModule } from './fotografias/fotografias.module';
 import { AnexosModule } from './anexos/anexos.module';
+import { LinhaTempoModule } from './linha-do-tempo/linha-do-tempo.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { AnexosModule } from './anexos/anexos.module';
     UploadModule,
     FotografiasModule,
     AnexosModule,
+    LinhaTempoModule,
   ],
   controllers: [AppController],
   providers: [
