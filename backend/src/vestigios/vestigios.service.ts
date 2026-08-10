@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVestigioDto, UpdateVestigioDto, CreateMovimentacaoCustodiaDto } from './dto/vestigios.dto';
+import { isOcorrenciaEditavel } from '../common/ocorrencia-helper';
 
 @Injectable()
 export class VestigiosService {
@@ -110,6 +111,7 @@ export class VestigiosService {
     if (!o) throw new NotFoundException('Ocorrência não encontrada.');
     const u = await this.prisma.unidade.findUnique({ where: { id: currentUser.unidadeId }, include: { delegacia: true } });
     if (!u?.delegacia || o.delegaciaId !== u.delegacia.id) throw new NotFoundException('Ocorrência não pertence à sua Unidade.');
-    if (exigeAberta && o.status !== 'ABERTA') throw new BadRequestException('A ocorrência não está mais editável.');
+    if (exigeAberta && !isOcorrenciaEditavel(o.status)) throw new ConflictException('A ocorrência já foi finalizada.');
+    if (!exigeAberta && o.status === 'ARQUIVADA') throw new ConflictException('A ocorrência está arquivada e não permite novas movimentações de custódia.');
   }
 }

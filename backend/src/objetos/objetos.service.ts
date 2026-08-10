@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateObjetoDto, UpdateObjetoDto } from './dto/objetos.dto';
+import { isOcorrenciaEditavel } from '../common/ocorrencia-helper';
 
 @Injectable()
 export class ObjetosService {
@@ -91,6 +92,6 @@ export class ObjetosService {
     if (!o) throw new NotFoundException('Ocorrência não encontrada.');
     const u = await this.prisma.unidade.findUnique({ where: { id: currentUser.unidadeId }, include: { delegacia: true } });
     if (!u?.delegacia || o.delegaciaId !== u.delegacia.id) throw new NotFoundException('Ocorrência não pertence à sua Unidade.');
-    if (o.status !== 'ABERTA') throw new BadRequestException('A ocorrência não está mais editável.');
+    if (!isOcorrenciaEditavel(o.status)) throw new ConflictException('A ocorrência já foi finalizada.');
   }
 }

@@ -1,55 +1,23 @@
 import { Controller, Get, Post, Patch, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { OcorrenciasService } from './ocorrencias.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { CreateOcorrenciaDto, UpdateOcorrenciaDto, OcorrenciaResponseDto } from './dto/ocorrencias.dto';
+import { CreateOcorrenciaDto, UpdateOcorrenciaDto, FinalizarOcorrenciaDto, ReabrirOcorrenciaDto, ArquivarOcorrenciaDto } from './dto/ocorrencias.dto';
 
 @ApiTags('ocorrencias')
-@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('ocorrencias')
 export class OcorrenciasController {
-  constructor(private readonly ocorrenciasService: OcorrenciasService) {}
+  constructor(private readonly service: OcorrenciasService) {}
 
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Criar nova ocorrencia (RASCUNHO)' })
-  @ApiResponse({ status: 201, description: 'Ocorrencia criada.', type: OcorrenciaResponseDto })
-  async create(
-    @Body() dto: CreateOcorrenciaDto,
-    @CurrentUser() currentUser: any,
-  ): Promise<OcorrenciaResponseDto> {
-    return this.ocorrenciasService.create(dto, currentUser);
-  }
+  @Post() @HttpCode(HttpStatus.CREATED) create(@Body() dto: CreateOcorrenciaDto, @CurrentUser() u: any) { return this.service.create(dto, u); }
+  @Get() findAll(@CurrentUser() u: any) { return this.service.findAll(u); }
+  @Get(':id') findOne(@Param('id') id: string, @CurrentUser() u: any) { return this.service.findOne(id, u); }
+  @Patch(':id') update(@Param('id') id: string, @Body() dto: UpdateOcorrenciaDto, @CurrentUser() u: any) { return this.service.update(id, dto, u); }
 
-  @Get()
-  @ApiOperation({ summary: 'Listar ocorrencias da Unidade' })
-  @ApiResponse({ status: 200, description: 'Lista de ocorrencias.', type: [OcorrenciaResponseDto] })
-  async findAll(
-    @CurrentUser() currentUser: any,
-  ): Promise<OcorrenciaResponseDto[]> {
-    return this.ocorrenciasService.findAll(currentUser);
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Buscar ocorrencia por ID' })
-  @ApiResponse({ status: 200, description: 'Ocorrencia encontrada.', type: OcorrenciaResponseDto })
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser() currentUser: any,
-  ): Promise<OcorrenciaResponseDto> {
-    return this.ocorrenciasService.findOne(id, currentUser);
-  }
-
-  @Patch(':id')
-  @ApiOperation({ summary: 'Atualizar ocorrencia (rascunho)' })
-  @ApiResponse({ status: 200, description: 'Ocorrencia atualizada.', type: OcorrenciaResponseDto })
-  async update(
-    @Param('id') id: string,
-    @Body() dto: UpdateOcorrenciaDto,
-    @CurrentUser() currentUser: any,
-  ): Promise<OcorrenciaResponseDto> {
-    return this.ocorrenciasService.update(id, dto, currentUser);
-  }
+  @Post(':id/finalizar') @HttpCode(HttpStatus.OK) finalizar(@Param('id') id: string, @Body() dto: FinalizarOcorrenciaDto, @CurrentUser() u: any) { return this.service.finalizar(id, dto, u); }
+  @Post(':id/reabrir') @HttpCode(HttpStatus.OK) reabrir(@Param('id') id: string, @Body() dto: ReabrirOcorrenciaDto, @CurrentUser() u: any) { return this.service.reabrir(id, dto, u); }
+  @Post(':id/arquivar') @HttpCode(HttpStatus.OK) arquivar(@Param('id') id: string, @Body() dto: ArquivarOcorrenciaDto, @CurrentUser() u: any) { return this.service.arquivar(id, dto, u); }
+  @Get(':id/historico-status') getHistorico(@Param('id') id: string, @CurrentUser() u: any) { return this.service.getHistoricoStatus(id, u); }
 }

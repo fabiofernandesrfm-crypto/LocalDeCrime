@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAtendimentoDto, UpdateAtendimentoDto, AtendimentoResponseDto } from './dto/atendimentos.dto';
+import { isOcorrenciaEditavel } from '../common/ocorrencia-helper';
 
 @Injectable()
 export class AtendimentosService {
@@ -127,8 +128,8 @@ export class AtendimentosService {
     }
 
     // Ocorrencia pai tambem deve estar editavel
-    if (atendimento.ocorrencia?.status !== 'ABERTA') {
-      throw new BadRequestException('A Ocorrência vinculada não está mais editável.');
+    if (atendimento.ocorrencia?.status && !isOcorrenciaEditavel(atendimento.ocorrencia.status)) {
+      throw new ConflictException('A Ocorrência vinculada já foi finalizada.');
     }
 
     const updated = await this.prisma.atendimentoLocal.update({

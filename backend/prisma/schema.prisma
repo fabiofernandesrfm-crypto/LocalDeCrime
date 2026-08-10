@@ -61,6 +61,13 @@ enum StatusOcorrencia {
   ARQUIVADA
 }
 
+/// Tipo de transição no histórico de status da ocorrência
+enum TipoHistoricoStatus {
+  FINALIZACAO
+  REABERTURA
+  ARQUIVAMENTO
+}
+
 /// Tipos de envolvimento de uma pessoa na ocorrência
 enum TipoEnvolvimento {
   VITIMA
@@ -252,6 +259,29 @@ enum FuncaoEquipe {
 // DOMÍNIO 1: AUTENTICAÇÃO E GESTÃO DE USUÁRIOS
 // ============================================================================
 
+/// Histórico imutável de transições de status da Ocorrência (append-only).
+/// Sem PATCH. Sem DELETE.
+model HistoricoStatusOcorrencia {
+  id             String                @id @default(uuid())
+  tipo           TipoHistoricoStatus
+  statusAnterior StatusOcorrencia      @map("status_anterior")
+  statusNovo     StatusOcorrencia      @map("status_novo")
+  motivo         String?
+  alteradoEm     DateTime              @default(now()) @map("alterado_em")
+  criadoEm       DateTime              @default(now()) @map("criado_em")
+
+  ocorrenciaId String     @map("ocorrencia_id")
+  ocorrencia   Ocorrencia @relation(fields: [ocorrenciaId], references: [id])
+
+  alteradoPorId String  @map("alterado_por_id")
+  alteradoPor   Usuario @relation(fields: [alteradoPorId], references: [id])
+
+  @@index([ocorrenciaId])
+  @@index([alteradoPorId])
+  @@index([alteradoEm])
+  @@map("historico_status_ocorrencia")
+}
+
 /// Usuário do sistema — policiais e servidores com acesso
 model Usuario {
   id           String    @id @default(uuid())
@@ -296,6 +326,8 @@ model Usuario {
   movimentacoesCustodia  MovimentacaoCustodiaVestigio[]
   fotografiasOcorrencia  FotografiaOcorrencia[]
   anexosOcorrencia       AnexoOcorrencia[]
+  ocorrenciasFinalizadas       Ocorrencia[]                    @relation("OcorrenciaFinalizadaPor")
+  alteracoesStatusOcorrencia   HistoricoStatusOcorrencia[]
 
   @@index([unidadeId])
   @@index([ativo])
@@ -512,7 +544,10 @@ model Ocorrencia {
   dataOcorrencia DateTime         @default(now()) @map("data_ocorrencia")
   dataConclusao  DateTime?        @map("data_conclusao")
   descricao      String
-  observacoes    String?
+  observacoes             String?
+  observacoesEncerramento String?  @map("observacoes_encerramento")
+  finalizadaPorId         String?  @map("finalizada_por_id")
+  finalizadaPor           Usuario? @relation("OcorrenciaFinalizadaPor", fields: [finalizadaPorId], references: [id])
   criadoEm       DateTime         @default(now()) @map("criado_em")
   atualizadoEm   DateTime         @updatedAt @map("atualizado_em")
   deletadoEm     DateTime?        @map("deletado_em")
@@ -534,6 +569,7 @@ model Ocorrencia {
   vestigiosOcorrencia   VestigioOcorrencia[]
   fotografiasOcorrencia FotografiaOcorrencia[]
   anexosOcorrencia      AnexoOcorrencia[]
+  historicoStatus        HistoricoStatusOcorrencia[]
 
   @@index([numeroBo])
   @@index([municipioId])

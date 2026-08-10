@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, PayloadTooLargeException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, PayloadTooLargeException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../upload/storage.service';
 import { FotografiaBodyDto, UpdateFotografiaDto } from './dto/fotografias.dto';
+import { isOcorrenciaEditavel } from '../common/ocorrencia-helper';
 
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
 
@@ -90,6 +91,6 @@ export class FotografiasService {
     if (!o) throw new NotFoundException('Ocorrência não encontrada.');
     const u = await this.prisma.unidade.findUnique({ where: { id: currentUser.unidadeId }, include: { delegacia: true } });
     if (!u?.delegacia || o.delegaciaId !== u.delegacia.id) throw new NotFoundException('Ocorrência não pertence à sua Unidade.');
-    if (exigeAberta && o.status !== 'ABERTA') throw new BadRequestException('A ocorrência não está mais editável.');
+    if (exigeAberta && !isOcorrenciaEditavel(o.status)) throw new ConflictException('A ocorrência já foi finalizada.');
   }
 }

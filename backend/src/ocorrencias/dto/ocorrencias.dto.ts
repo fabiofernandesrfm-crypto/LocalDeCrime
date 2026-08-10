@@ -1,4 +1,4 @@
-import { IsString, IsOptional, MinLength } from 'class-validator';
+import { IsString, IsOptional, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateOcorrenciaDto {
@@ -14,6 +14,31 @@ export class CreateOcorrenciaDto {
 
   // municipioId, delegaciaId, usuarioId, unidadeId, status, numeroBo
   // sao determinados exclusivamente pelo backend via JWT.
+}
+
+export class ArquivarOcorrenciaDto {
+  @ApiProperty({ example: 'Ocorrência concluída e pronta para arquivamento definitivo.' })
+  @IsString()
+  @MinLength(5)
+  @MaxLength(5000)
+  motivo: string;
+}
+
+export class ReabrirOcorrenciaDto {
+  @ApiProperty({ example: 'Necessário complementar investigação após novas evidências.' })
+  @IsString()
+  @MinLength(5)
+  @MaxLength(5000)
+  justificativa: string;
+}
+
+export class FinalizarOcorrenciaDto {
+  @ApiPropertyOptional({ example: 'Ocorrência encerrada após coleta de todos os vestígios.' })
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(5000)
+  observacoes?: string;
 }
 
 export class UpdateOcorrenciaDto {
