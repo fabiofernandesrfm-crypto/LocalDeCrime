@@ -44,6 +44,9 @@ export class SearchOcorrenciasDto {
   @ApiPropertyOptional() @IsOptional() @IsString() delegaciaId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() municipioId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() usuarioId?: string;
+  @ApiPropertyOptional({ example: 'HML-2026' })
+  @IsOptional() @IsString() q?: string;
+
   @ApiPropertyOptional() @IsOptional() @IsString() descricao?: string;
 
   // ── Pesquisa Operacional Integrada ────────────────────────

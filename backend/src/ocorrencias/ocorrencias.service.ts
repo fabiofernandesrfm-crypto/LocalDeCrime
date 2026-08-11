@@ -49,6 +49,11 @@ export class OcorrenciasService {
     if (dto.usuarioId) where.usuarioId = dto.usuarioId;
     if (dto.descricao) where.descricao = { contains: dto.descricao, mode: 'insensitive' };
 
+    // ── Busca Global Inteligente ─────────────────────────
+    if (dto.q) {
+      where.OR = this._buildGlobalSearchOr(dto.q);
+    }
+
     // ── Filtros relacionais (pesquisa operacional) ─────────
     if (dto.nomePessoa || dto.cpfPessoa) {
       const pessoaFilters: any = {};
@@ -182,6 +187,21 @@ export class OcorrenciasService {
     if (!currentUser.unidadeId) throw new BadRequestException('Usuário sem Unidade.');
     const u = await this.prisma.unidade.findUnique({ where: { id: currentUser.unidadeId }, include: { delegacia: true } });
     if (!u?.delegacia || o.delegaciaId !== u.delegacia.id) throw new NotFoundException('Ocorrência não pertence à sua Unidade.');
+  }
+
+  private _buildGlobalSearchOr(q: string): any[] {
+    return [
+      { numeroBo: { contains: q, mode: 'insensitive' } },
+      { descricao: { contains: q, mode: 'insensitive' } },
+      { pessoasEnvolvidas: { some: { nome: { contains: q, mode: 'insensitive' } } } },
+      { pessoasEnvolvidas: { some: { cpf: { contains: q } } } },
+      { veiculosOcorrencia: { some: { placa: { contains: q, mode: 'insensitive' } } } },
+      { objetosOcorrencia: { some: { descricao: { contains: q, mode: 'insensitive' } } } },
+      { vestigiosOcorrencia: { some: { descricao: { contains: q, mode: 'insensitive' } } } },
+      { vestigiosOcorrencia: { some: { numeroLacre: { contains: q, mode: 'insensitive' } } } },
+      { fotografiasOcorrencia: { some: { legenda: { contains: q, mode: 'insensitive' } } } },
+      { anexosOcorrencia: { some: { descricao: { contains: q, mode: 'insensitive' } } } },
+    ];
   }
 
   private mapToResponse(o: any): OcorrenciaResponseDto {
