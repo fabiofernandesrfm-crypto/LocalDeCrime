@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOcorrenciaDto, UpdateOcorrenciaDto, OcorrenciaResponseDto, FinalizarOcorrenciaDto, ReabrirOcorrenciaDto, ArquivarOcorrenciaDto, SearchOcorrenciasDto, PaginatedOcorrenciasDto } from './dto/ocorrencias.dto';
+import { RelatorioOcorrenciaDto } from './dto/relatorio-ocorrencia.dto';
 import { isOcorrenciaEditavel } from '../common/ocorrencia-helper';
 
 const VALID_STATUS = ['ABERTA', 'EM_INVESTIGACAO', 'CONCLUIDA', 'ARQUIVADA'];
@@ -174,6 +175,69 @@ export class OcorrenciasService {
       await tx.historicoStatusOcorrencia.create({ data: { tipo: 'ARQUIVAMENTO', statusAnterior: 'CONCLUIDA', statusNovo: 'ARQUIVADA', motivo: dto.motivo, ocorrenciaId: id, alteradoPorId: currentUser.id } });
       return this.mapToResponse(await tx.ocorrencia.findUnique({ where: { id }, include: { usuario: true, municipio: true, delegacia: true } }));
     });
+  }
+
+  async getRelatorio(id: string, currentUser: any): Promise<RelatorioOcorrenciaDto> {
+    const o = await this.prisma.ocorrencia.findUnique({
+      where: { id },
+      include: { delegacia: true },
+    });
+    if (!o) throw new NotFoundException('Ocorrência não encontrada.');
+    await this._validarUnidade(o, currentUser);
+
+    const [
+      ocorrencia,
+      pessoas,
+      veiculos,
+      objetos,
+      vestigios,
+      fotografias,
+      anexos,
+      historicoStatus,
+    ] = await Promise.all([
+      this.prisma.ocorrencia.findUnique({
+        where: { id },
+        include: { usuario: { select: { id: true, nome: true, matricula: true, cargo: true } }, municipio: true, delegacia: true },
+      }),
+      this.prisma.pessoaEnvolvida.findMany({ where: { ocorrenciaId: id }, orderBy: { criadoEm: 'asc' } }),
+      this.prisma.veiculoOcorrencia.findMany({ where: { ocorrenciaId: id }, orderBy: { criadoEm: 'asc' } }),
+      this.prisma.objetoOcorrencia.findMany({ where: { ocorrenciaId: id }, orderBy: { criadoEm: 'asc' } }),
+      this.prisma.vestigioOcorrencia.findMany({
+        where: { ocorrenciaId: id },
+        orderBy: { criadoEm: 'asc' },
+        include: { movimentacoesCustodia: { orderBy: { movimentadoEm: 'asc' } } },
+      }),
+      this.prisma.fotografiaOcorrencia.findMany({ where: { ocorrenciaId: id }, orderBy: { criadoEm: 'asc' } }),
+      this.prisma.anexoOcorrencia.findMany({ where: { ocorrenciaId: id }, orderBy: { criadoEm: 'asc' } }),
+      this.prisma.historicoStatusOcorrencia.findMany({
+        where: { ocorrenciaId: id },
+        orderBy: { alteradoEm: 'asc' },
+        include: { alteradoPor: { select: { id: true, nome: true, matricula: true, cargo: true } } },
+      }),
+    ]);
+
+    if (!ocorrencia) throw new NotFoundException('Erro ao carregar dados da ocorrência.');
+
+    return {
+      ocorrencia: {
+        id: ocorrencia.id, numeroBo: ocorrencia.numeroBo, status: ocorrencia.status,
+        descricao: ocorrencia.descricao, observacoes: ocorrencia.observacoes,
+        dataOcorrencia: ocorrencia.dataOcorrencia.toISOString(),
+        dataConclusao: ocorrencia.dataConclusao?.toISOString() || null,
+        criadoEm: ocorrencia.criadoEm.toISOString(),
+        municipio: ocorrencia.municipio ? { id: ocorrencia.municipio.id, nome: ocorrencia.municipio.nome } : null,
+        delegacia: ocorrencia.delegacia ? { id: ocorrencia.delegacia.id, nome: ocorrencia.delegacia.titulo ?? ocorrencia.delegacia.id } : null,
+        usuario: ocorrencia.usuario ? { id: ocorrencia.usuario.id, nome: ocorrencia.usuario.nome, matricula: ocorrencia.usuario.matricula, cargo: ocorrencia.usuario.cargo } : null,
+      },
+      pessoas: pessoas.map(p => ({ id: p.id, nome: p.nome, identificada: p.identificada, nic: p.nic, cpf: p.cpf, tipoEnvolvimento: p.tipoEnvolvimento, sexo: p.sexo, dataNascimento: p.dataNascimento?.toISOString() || null, telefone: p.telefone, bairro: p.bairro, criadoEm: p.criadoEm.toISOString() })),
+      veiculos: veiculos.map(v => ({ id: v.id, placa: v.placa, marca: v.marca, modelo: v.modelo, ano: v.ano, cor: v.cor, situacao: v.situacao, criadoEm: v.criadoEm.toISOString() })),
+      objetos: objetos.map(obj => ({ id: obj.id, categoria: obj.categoria, descricao: obj.descricao, marca: obj.marca, modelo: obj.modelo, quantidade: obj.quantidade, situacao: obj.situacao, criadoEm: obj.criadoEm.toISOString() })),
+      vestigios: vestigios.map(v => ({ id: v.id, categoria: v.categoria, descricao: v.descricao, coletado: v.coletado, situacao: v.situacao, numeroLacre: v.numeroLacre, criadoEm: v.criadoEm.toISOString(), custodia: v.movimentacoesCustodia.map(c => ({ id: c.id, tipoMovimentacao: c.tipoMovimentacao, origem: c.origem, destino: c.destino, entreguePor: c.entreguePor, recebidoPor: c.recebidoPor, movimentadoEm: c.movimentadoEm.toISOString() })) })),
+      fotografias: fotografias.map(f => ({ id: f.id, legenda: f.legenda, mimeType: f.mimeType, tamanhoBytes: f.tamanhoBytes, criadoEm: f.criadoEm.toISOString() })),
+      anexos: anexos.map(a => ({ id: a.id, descricao: a.descricao, mimeType: a.mimeType, tamanhoBytes: a.tamanhoBytes, criadoEm: a.criadoEm.toISOString() })),
+      historicoStatus: historicoStatus.map(h => ({ id: h.id, tipo: h.tipo, statusAnterior: h.statusAnterior, statusNovo: h.statusNovo, motivo: h.motivo, alteradoEm: h.alteradoEm.toISOString(), alteradoPor: h.alteradoPor })),
+      linhaDoTempo: [],
+    };
   }
 
   async getHistoricoStatus(id: string, currentUser: any) {
