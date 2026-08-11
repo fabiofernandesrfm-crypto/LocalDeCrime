@@ -17,6 +17,7 @@ import { UploadModule } from './upload/upload.module';
 import { FotografiasModule } from './fotografias/fotografias.module';
 import { AnexosModule } from './anexos/anexos.module';
 import { LinhaTempoModule } from './linha-do-tempo/linha-do-tempo.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { LinhaTempoModule } from './linha-do-tempo/linha-do-tempo.module';
     FotografiasModule,
     AnexosModule,
     LinhaTempoModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [
