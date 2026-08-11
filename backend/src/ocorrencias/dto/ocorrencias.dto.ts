@@ -55,6 +55,14 @@ export class SearchOcorrenciasDto {
   @IsOptional() @IsString() placaVeiculo?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() objetoDescricao?: string;
 
+  // ── Pesquisa Operacional Avançada ─────────────────────────
+  @ApiPropertyOptional() @IsOptional() @IsString() descricaoVestigio?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() categoriaVestigio?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() numeroLacre?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() legendaFoto?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() descricaoAnexo?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() tipoMovimentacaoCustodia?: string;
+
   @ApiPropertyOptional({ example: '2026-08-01T00:00:00.000Z' })
   @IsOptional() @IsDateString() dataInicial?: string;
   @ApiPropertyOptional({ example: '2026-08-31T23:59:59.999Z' })

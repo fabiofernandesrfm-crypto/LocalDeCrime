@@ -62,6 +62,24 @@ export class OcorrenciasService {
     if (dto.objetoDescricao) {
       where.objetosOcorrencia = { some: { descricao: { contains: dto.objetoDescricao, mode: 'insensitive' } } };
     }
+    // Filtro de Vestígio + Custódia (compostos no mesmo some)
+    const filtroVestigio: any = {};
+    if (dto.descricaoVestigio) filtroVestigio.descricao = { contains: dto.descricaoVestigio, mode: 'insensitive' };
+    if (dto.categoriaVestigio) filtroVestigio.categoria = { contains: dto.categoriaVestigio, mode: 'insensitive' };
+    if (dto.numeroLacre) filtroVestigio.numeroLacre = { contains: dto.numeroLacre, mode: 'insensitive' };
+    if (dto.tipoMovimentacaoCustodia) {
+      filtroVestigio.movimentacoesCustodia = { some: { tipoMovimentacao: { contains: dto.tipoMovimentacaoCustodia, mode: 'insensitive' } } };
+    }
+    if (Object.keys(filtroVestigio).length > 0) {
+      where.vestigiosOcorrencia = { some: filtroVestigio };
+    }
+
+    if (dto.legendaFoto) {
+      where.fotografiasOcorrencia = { some: { legenda: { contains: dto.legendaFoto, mode: 'insensitive' } } };
+    }
+    if (dto.descricaoAnexo) {
+      where.anexosOcorrencia = { some: { descricao: { contains: dto.descricaoAnexo, mode: 'insensitive' } } };
+    }
 
     // Intervalo de datas
     if (dto.dataInicial || dto.dataFinal) {
