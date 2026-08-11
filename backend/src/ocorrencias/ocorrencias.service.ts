@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateOcorrenciaDto, UpdateOcorrenciaDto, OcorrenciaResponseDto, FinalizarOcorrenciaDto, ReabrirOcorrenciaDto, ArquivarOcorrenciaDto, SearchOcorrenciasDto, PaginatedOcorrenciasDto } from './dto/ocorrencias.dto';
 import { RelatorioOcorrenciaDto } from './dto/relatorio-ocorrencia.dto';
 import { PendenciasResponseDto, PendenciaDto } from './dto/pendencias-ocorrencia.dto';
+import { PainelPendenciasQueryDto, PainelPendenciasResponseDto } from './dto/painel-pendencias.dto';
 import { isOcorrenciaEditavel } from '../common/ocorrencia-helper';
 import { LinhaTempoService } from '../linha-do-tempo/linha-tempo.service';
 
@@ -304,6 +305,106 @@ export class OcorrenciasService {
     if (!currentUser.unidadeId) throw new BadRequestException('Usuário sem Unidade.');
     const u = await this.prisma.unidade.findUnique({ where: { id: currentUser.unidadeId }, include: { delegacia: true } });
     if (!u?.delegacia || o.delegaciaId !== u.delegacia.id) throw new NotFoundException('Ocorrência não pertence à sua Unidade.');
+  }
+
+  async getPainelPendencias(dto: PainelPendenciasQueryDto, currentUser: any): Promise<PainelPendenciasResponseDto> {
+    if (!currentUser.unidadeId) return { items: [], page: dto.page || 1, pageSize: dto.pageSize || 20, total: 0, totalPages: 0 };
+    const unidade = await this.prisma.unidade.findUnique({ where: { id: currentUser.unidadeId }, include: { delegacia: true } });
+    if (!unidade?.delegacia) return { items: [], page: dto.page || 1, pageSize: dto.pageSize || 20, total: 0, totalPages: 0 };
+
+    const where: any = { delegaciaId: unidade.delegacia.id };
+    if (dto.status) where.status = dto.status;
+    if (dto.dataInicial || dto.dataFinal) {
+      if (dto.dataInicial && dto.dataFinal && new Date(dto.dataInicial) > new Date(dto.dataFinal)) throw new BadRequestException('dataInicial não pode ser posterior a dataFinal.');
+      where.dataOcorrencia = {};
+      if (dto.dataInicial) where.dataOcorrencia.gte = new Date(dto.dataInicial);
+      if (dto.dataFinal) where.dataOcorrencia.lte = new Date(dto.dataFinal);
+    }
+
+    // 1. Buscar TODAS as ocorrências candidatas (IDs + campos mínimos)
+    const candidatas = await this.prisma.ocorrencia.findMany({
+      where,
+      select: { id: true, numeroBo: true, status: true, dataOcorrencia: true },
+      orderBy: { dataOcorrencia: 'desc' },
+    });
+    if (candidatas.length === 0) return { items: [], page: dto.page || 1, pageSize: dto.pageSize || 20, total: 0, totalPages: 0 };
+
+    const ids = candidatas.map(o => o.id);
+
+    // 2. Batch counts para todas as ocorrências
+    const [countsPessoa, countsVeic, countsObj, countsVest, countsFoto, countsAnexo, custodiaRows] = await Promise.all([
+      this.prisma.pessoaEnvolvida.groupBy({ by: ['ocorrenciaId'], where: { ocorrenciaId: { in: ids } }, _count: { id: true } }),
+      this.prisma.veiculoOcorrencia.groupBy({ by: ['ocorrenciaId'], where: { ocorrenciaId: { in: ids } }, _count: { id: true } }),
+      this.prisma.objetoOcorrencia.groupBy({ by: ['ocorrenciaId'], where: { ocorrenciaId: { in: ids } }, _count: { id: true } }),
+      this.prisma.vestigioOcorrencia.groupBy({ by: ['ocorrenciaId'], where: { ocorrenciaId: { in: ids } }, _count: { id: true } }),
+      this.prisma.fotografiaOcorrencia.groupBy({ by: ['ocorrenciaId'], where: { ocorrenciaId: { in: ids } }, _count: { id: true } }),
+      this.prisma.anexoOcorrencia.groupBy({ by: ['ocorrenciaId'], where: { ocorrenciaId: { in: ids } }, _count: { id: true } }),
+      this.prisma.vestigioOcorrencia.findMany({ where: { ocorrenciaId: { in: ids }, coletado: true, movimentacoesCustodia: { none: {} } }, select: { ocorrenciaId: true, id: true } }),
+    ]);
+
+    const m = (arr: { ocorrenciaId: string; _count: { id: number } }[], oid: string) => arr.find(x => x.ocorrenciaId === oid)?._count.id || 0;
+    const semCustMap = new Map<string, number>();
+    for (const v of custodiaRows) semCustMap.set(v.ocorrenciaId, (semCustMap.get(v.ocorrenciaId) || 0) + 1);
+
+    // 3. Construir items com pendências para todas as candidatas
+    let items = candidatas.map(o => {
+      const counts = { tp: m(countsPessoa, o.id), tv: m(countsVeic, o.id), to_: m(countsObj, o.id), tvt: m(countsVest, o.id), tf: m(countsFoto, o.id), ta: m(countsAnexo, o.id) };
+      const pendencias = this._buildPendencias(o.status, counts, semCustMap.get(o.id) || 0);
+      const resumo = { total: pendencias.length, alta: pendencias.filter(p => p.criticidade === 'ALTA').length, media: pendencias.filter(p => p.criticidade === 'MEDIA').length, baixa: pendencias.filter(p => p.criticidade === 'BAIXA').length };
+      return { ocorrenciaId: o.id, numeroBo: o.numeroBo, status: o.status, dataOcorrencia: o.dataOcorrencia.toISOString(), resumo, pendencias };
+    });
+
+    // 4. Filtrar por criticidade/codigoPendencia (APÓS cálculo completo)
+    if (dto.criticidade) items = items.filter(it => it.pendencias.some(p => p.criticidade === dto.criticidade));
+    if (dto.codigoPendencia) items = items.filter(it => it.pendencias.some(p => p.codigo === dto.codigoPendencia));
+    // Padrão: apenas ocorrências com pendências
+    if (!dto.criticidade && !dto.codigoPendencia) items = items.filter(it => it.pendencias.length > 0);
+
+    // 5. Ordenação global
+    const ordemCrit: any = { ALTA: 0, MEDIA: 1, BAIXA: 2 };
+    items.sort((a, b) => {
+      const maxA = Math.min(...a.pendencias.map(p => ordemCrit[p.criticidade] ?? 99));
+      const maxB = Math.min(...b.pendencias.map(p => ordemCrit[p.criticidade] ?? 99));
+      if (maxA !== maxB) return maxA - maxB;
+      return b.dataOcorrencia.localeCompare(a.dataOcorrencia);
+    });
+
+    // 6. Paginação sobre o conjunto final
+    const total = items.length;
+    const page = dto.page || 1;
+    const pageSize = dto.pageSize || 20;
+    const paged = items.slice((page - 1) * pageSize, page * pageSize).map(({ ocorrenciaId, numeroBo, status, dataOcorrencia, resumo, pendencias }) => ({
+      ocorrenciaId, numeroBo, status, dataOcorrencia, resumo,
+      pendencias: pendencias.map(p => ({ codigo: p.codigo, criticidade: p.criticidade, categoria: p.categoria, titulo: p.titulo })),
+    }));
+
+    return { items: paged, page, pageSize, total, totalPages: Math.ceil(total / pageSize) };
+  }
+
+  private _countRelacoes(id: string) {
+    return Promise.all([
+      this.prisma.pessoaEnvolvida.count({ where: { ocorrenciaId: id } }),
+      this.prisma.veiculoOcorrencia.count({ where: { ocorrenciaId: id } }),
+      this.prisma.objetoOcorrencia.count({ where: { ocorrenciaId: id } }),
+      this.prisma.vestigioOcorrencia.count({ where: { ocorrenciaId: id } }),
+      this.prisma.fotografiaOcorrencia.count({ where: { ocorrenciaId: id } }),
+      this.prisma.anexoOcorrencia.count({ where: { ocorrenciaId: id } }),
+    ]).then(([tp, tv, to_, tvt, tf, ta]) => ({ tp, tv, to_, tvt, tf, ta }));
+  }
+
+  private _buildPendencias(status: string, c: { tp: number; tv: number; to_: number; tvt: number; tf: number; ta: number }, semCustodia: number): PendenciaDto[] {
+    const pendencias: PendenciaDto[] = [];
+    if (status === 'ABERTA' || status === 'EM_INVESTIGACAO') pendencias.push({ codigo: 'OCORRENCIA_NAO_FINALIZADA', titulo: 'Ocorrência não concluída', descricao: 'A ocorrência ainda não foi finalizada.', criticidade: 'ALTA', categoria: 'OCORRENCIA' });
+    if (c.tp === 0) pendencias.push({ codigo: 'SEM_PESSOA', titulo: 'Nenhuma pessoa cadastrada', descricao: 'A ocorrência não possui pessoas envolvidas registradas.', criticidade: 'MEDIA', categoria: 'PESSOA' });
+    if (c.tv === 0) pendencias.push({ codigo: 'SEM_VEICULO', titulo: 'Nenhum veículo cadastrado', descricao: 'A ocorrência não possui veículos vinculados.', criticidade: 'BAIXA', categoria: 'VEICULO' });
+    if (c.to_ === 0) pendencias.push({ codigo: 'SEM_OBJETO', titulo: 'Nenhum objeto cadastrado', descricao: 'A ocorrência não possui objetos vinculados.', criticidade: 'BAIXA', categoria: 'OBJETO' });
+    if (c.tvt === 0) pendencias.push({ codigo: 'SEM_VESTIGIO', titulo: 'Nenhum vestígio cadastrado', descricao: 'A ocorrência não possui vestígios registrados.', criticidade: 'MEDIA', categoria: 'VESTIGIO' });
+    if (c.tf === 0) pendencias.push({ codigo: 'SEM_FOTOGRAFIA', titulo: 'Nenhuma fotografia cadastrada', descricao: 'A ocorrência ainda não possui fotografias registradas.', criticidade: 'MEDIA', categoria: 'FOTOGRAFIA' });
+    if (c.ta === 0) pendencias.push({ codigo: 'SEM_ANEXO', titulo: 'Nenhum anexo cadastrado', descricao: 'A ocorrência não possui anexos registrados.', criticidade: 'BAIXA', categoria: 'ANEXO' });
+    if (c.tvt > 0 && semCustodia > 0) pendencias.push({ codigo: 'VESTIGIO_SEM_CUSTODIA', titulo: 'Vestígio coletado sem custódia', descricao: `${semCustodia} vestígio(s) coletado(s) sem movimentação de custódia registrada.`, criticidade: 'MEDIA', categoria: 'CUSTODIA' });
+    const ordem = { ALTA: 0, MEDIA: 1, BAIXA: 2 };
+    pendencias.sort((a, b) => ordem[a.criticidade] - ordem[b.criticidade]);
+    return pendencias;
   }
 
   private _buildGlobalSearchOr(q: string): any[] {
