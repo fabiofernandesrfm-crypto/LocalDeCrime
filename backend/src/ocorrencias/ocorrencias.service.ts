@@ -3,12 +3,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateOcorrenciaDto, UpdateOcorrenciaDto, OcorrenciaResponseDto, FinalizarOcorrenciaDto, ReabrirOcorrenciaDto, ArquivarOcorrenciaDto, SearchOcorrenciasDto, PaginatedOcorrenciasDto } from './dto/ocorrencias.dto';
 import { RelatorioOcorrenciaDto } from './dto/relatorio-ocorrencia.dto';
 import { isOcorrenciaEditavel } from '../common/ocorrencia-helper';
+import { LinhaTempoService } from '../linha-do-tempo/linha-tempo.service';
 
 const VALID_STATUS = ['ABERTA', 'EM_INVESTIGACAO', 'CONCLUIDA', 'ARQUIVADA'];
 
 @Injectable()
 export class OcorrenciasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly linhaTempoService: LinhaTempoService) {}
 
   async create(dto: CreateOcorrenciaDto, currentUser: any): Promise<OcorrenciaResponseDto> {
     if (!currentUser.unidadeId) throw new BadRequestException('Usuário sem Unidade vinculada.');
@@ -236,7 +237,7 @@ export class OcorrenciasService {
       fotografias: fotografias.map(f => ({ id: f.id, legenda: f.legenda, mimeType: f.mimeType, tamanhoBytes: f.tamanhoBytes, criadoEm: f.criadoEm.toISOString() })),
       anexos: anexos.map(a => ({ id: a.id, descricao: a.descricao, mimeType: a.mimeType, tamanhoBytes: a.tamanhoBytes, criadoEm: a.criadoEm.toISOString() })),
       historicoStatus: historicoStatus.map(h => ({ id: h.id, tipo: h.tipo, statusAnterior: h.statusAnterior, statusNovo: h.statusNovo, motivo: h.motivo, alteradoEm: h.alteradoEm.toISOString(), alteradoPor: h.alteradoPor })),
-      linhaDoTempo: [],
+      linhaDoTempo: await this.linhaTempoService.getTimeline(id, currentUser),
     };
   }
 
