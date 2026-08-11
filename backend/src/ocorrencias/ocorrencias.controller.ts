@@ -27,6 +27,7 @@ export class OcorrenciasController {
 
   @RequirePermission(Permissions.OCORRENCIA_ARQUIVAR)
   @Post(':id/arquivar') @HttpCode(HttpStatus.OK) arquivar(@Param('id') id: string, @Body() dto: ArquivarOcorrenciaDto, @CurrentUser() u: any) { return this.service.arquivar(id, dto, u); }
+  @Get(':id/pendencias') getPendencias(@Param('id') id: string, @CurrentUser() u: any) { return this.service.getPendencias(id, u); }
   @Get(':id/relatorio') getRelatorio(@Param('id') id: string, @CurrentUser() u: any) { return this.service.getRelatorio(id, u); }
   @Get(':id/historico-status') getHistorico(@Param('id') id: string, @CurrentUser() u: any) { return this.service.getHistoricoStatus(id, u); }
 }

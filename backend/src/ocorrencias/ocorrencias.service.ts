@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ConflictException }
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOcorrenciaDto, UpdateOcorrenciaDto, OcorrenciaResponseDto, FinalizarOcorrenciaDto, ReabrirOcorrenciaDto, ArquivarOcorrenciaDto, SearchOcorrenciasDto, PaginatedOcorrenciasDto } from './dto/ocorrencias.dto';
 import { RelatorioOcorrenciaDto } from './dto/relatorio-ocorrencia.dto';
+import { PendenciasResponseDto, PendenciaDto } from './dto/pendencias-ocorrencia.dto';
 import { isOcorrenciaEditavel } from '../common/ocorrencia-helper';
 import { LinhaTempoService } from '../linha-do-tempo/linha-tempo.service';
 
@@ -176,6 +177,57 @@ export class OcorrenciasService {
       await tx.historicoStatusOcorrencia.create({ data: { tipo: 'ARQUIVAMENTO', statusAnterior: 'CONCLUIDA', statusNovo: 'ARQUIVADA', motivo: dto.motivo, ocorrenciaId: id, alteradoPorId: currentUser.id } });
       return this.mapToResponse(await tx.ocorrencia.findUnique({ where: { id }, include: { usuario: true, municipio: true, delegacia: true } }));
     });
+  }
+
+  async getPendencias(id: string, currentUser: any): Promise<PendenciasResponseDto> {
+    const o = await this.prisma.ocorrencia.findUnique({ where: { id }, include: { delegacia: true } });
+    if (!o) throw new NotFoundException('Ocorrência não encontrada.');
+    await this._validarUnidade(o, currentUser);
+
+    const pendencias: PendenciaDto[] = [];
+
+    // Status não finalizado
+    if (o.status === 'ABERTA' || o.status === 'EM_INVESTIGACAO') {
+      pendencias.push({ codigo: 'OCORRENCIA_NAO_FINALIZADA', titulo: 'Ocorrência não concluída', descricao: 'A ocorrência ainda não foi finalizada.', criticidade: 'ALTA', categoria: 'OCORRENCIA' });
+    }
+
+    // Contagens paralelas (1 query cada)
+    const [tp, tv, to_, tvt, tf, ta] = await Promise.all([
+      this.prisma.pessoaEnvolvida.count({ where: { ocorrenciaId: id } }),
+      this.prisma.veiculoOcorrencia.count({ where: { ocorrenciaId: id } }),
+      this.prisma.objetoOcorrencia.count({ where: { ocorrenciaId: id } }),
+      this.prisma.vestigioOcorrencia.count({ where: { ocorrenciaId: id } }),
+      this.prisma.fotografiaOcorrencia.count({ where: { ocorrenciaId: id } }),
+      this.prisma.anexoOcorrencia.count({ where: { ocorrenciaId: id } }),
+    ]);
+
+    if (tp === 0) pendencias.push({ codigo: 'SEM_PESSOA', titulo: 'Nenhuma pessoa cadastrada', descricao: 'A ocorrência não possui pessoas envolvidas registradas.', criticidade: 'MEDIA', categoria: 'PESSOA' });
+    if (tv === 0) pendencias.push({ codigo: 'SEM_VEICULO', titulo: 'Nenhum veículo cadastrado', descricao: 'A ocorrência não possui veículos vinculados.', criticidade: 'BAIXA', categoria: 'VEICULO' });
+    if (to_ === 0) pendencias.push({ codigo: 'SEM_OBJETO', titulo: 'Nenhum objeto cadastrado', descricao: 'A ocorrência não possui objetos vinculados.', criticidade: 'BAIXA', categoria: 'OBJETO' });
+    if (tvt === 0) pendencias.push({ codigo: 'SEM_VESTIGIO', titulo: 'Nenhum vestígio cadastrado', descricao: 'A ocorrência não possui vestígios registrados.', criticidade: 'MEDIA', categoria: 'VESTIGIO' });
+    if (tf === 0) pendencias.push({ codigo: 'SEM_FOTOGRAFIA', titulo: 'Nenhuma fotografia cadastrada', descricao: 'A ocorrência ainda não possui fotografias registradas.', criticidade: 'MEDIA', categoria: 'FOTOGRAFIA' });
+    if (ta === 0) pendencias.push({ codigo: 'SEM_ANEXO', titulo: 'Nenhum anexo cadastrado', descricao: 'A ocorrência não possui anexos registrados.', criticidade: 'BAIXA', categoria: 'ANEXO' });
+
+    // Vestígio coletado sem custódia
+    if (tvt > 0) {
+      const semCustodia = await this.prisma.vestigioOcorrencia.count({ where: { ocorrenciaId: id, coletado: true, movimentacoesCustodia: { none: {} } } });
+      if (semCustodia > 0) {
+        pendencias.push({ codigo: 'VESTIGIO_SEM_CUSTODIA', titulo: 'Vestígio coletado sem custódia', descricao: `${semCustodia} vestígio(s) coletado(s) sem movimentação de custódia registrada.`, criticidade: 'MEDIA', categoria: 'CUSTODIA' });
+      }
+    }
+
+    // Ordenação: ALTA → MEDIA → BAIXA, estável
+    const ordem = { ALTA: 0, MEDIA: 1, BAIXA: 2 };
+    pendencias.sort((a, b) => ordem[a.criticidade] - ordem[b.criticidade]);
+
+    const resumo = {
+      total: pendencias.length,
+      alta: pendencias.filter(p => p.criticidade === 'ALTA').length,
+      media: pendencias.filter(p => p.criticidade === 'MEDIA').length,
+      baixa: pendencias.filter(p => p.criticidade === 'BAIXA').length,
+    };
+
+    return { ocorrenciaId: id, numeroBo: o.numeroBo, status: o.status, resumo, pendencias };
   }
 
   async getRelatorio(id: string, currentUser: any): Promise<RelatorioOcorrenciaDto> {
