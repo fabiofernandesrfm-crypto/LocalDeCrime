@@ -1,0 +1,7 @@
+        codigo        |   modulo    |                descricao                 | deletado_em 
+----------------------+-------------+------------------------------------------+-------------
+ OCORRENCIA_ARQUIVAR  | OCORRENCIAS | Permite arquivar ocorrências concluídas. | 
+ OCORRENCIA_FINALIZAR | OCORRENCIAS | Permite finalizar ocorrências.           | 
+ OCORRENCIA_REABRIR   | OCORRENCIAS | Permite reabrir ocorrências concluídas.  | 
+(3 rows)
+
