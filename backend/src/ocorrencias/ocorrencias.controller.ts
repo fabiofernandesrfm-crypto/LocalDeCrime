@@ -8,6 +8,7 @@ import { Permissions } from '../auth/constants/permissions';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { CreateOcorrenciaDto, UpdateOcorrenciaDto, FinalizarOcorrenciaDto, ReabrirOcorrenciaDto, ArquivarOcorrenciaDto, SearchOcorrenciasDto } from './dto/ocorrencias.dto';
 import { PainelPendenciasQueryDto } from './dto/painel-pendencias.dto';
+import { FilaOperacionalQueryDto } from './dto/fila-operacional.dto';
 
 @ApiTags('ocorrencias')
 @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -21,6 +22,8 @@ export class OcorrenciasController {
   @Get()
   search(@Query() query: SearchOcorrenciasDto, @CurrentUser() u: any) { return this.service.search(query, u); }
 
+  @Get('fila-operacional')
+  getFilaOperacional(@Query() query: FilaOperacionalQueryDto, @CurrentUser() u: any) { return this.service.getFilaOperacional(query, u); }
   @Get('pendencias')
   getPainelPendencias(@Query() query: PainelPendenciasQueryDto, @CurrentUser() u: any) { return this.service.getPainelPendencias(query, u); }
 

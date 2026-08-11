@@ -4,6 +4,7 @@ import { CreateOcorrenciaDto, UpdateOcorrenciaDto, OcorrenciaResponseDto, Finali
 import { RelatorioOcorrenciaDto } from './dto/relatorio-ocorrencia.dto';
 import { PendenciasResponseDto, PendenciaDto } from './dto/pendencias-ocorrencia.dto';
 import { PainelPendenciasQueryDto, PainelPendenciasResponseDto } from './dto/painel-pendencias.dto';
+import { FilaOperacionalQueryDto, FilaOperacionalResponseDto } from './dto/fila-operacional.dto';
 import { isOcorrenciaEditavel } from '../common/ocorrencia-helper';
 import { LinhaTempoService } from '../linha-do-tempo/linha-tempo.service';
 
@@ -390,6 +391,89 @@ export class OcorrenciasService {
       this.prisma.fotografiaOcorrencia.count({ where: { ocorrenciaId: id } }),
       this.prisma.anexoOcorrencia.count({ where: { ocorrenciaId: id } }),
     ]).then(([tp, tv, to_, tvt, tf, ta]) => ({ tp, tv, to_, tvt, tf, ta }));
+  }
+
+  private _buildPrioridade(pendencias: PendenciaDto[], idadeHoras: number): { prioridade: string; motivos: string[] } {
+    const HORAS_ALTA = 24;
+    const HORAS_CRITICA_SEM_FOTO = 48;
+
+    const codigos = pendencias.map(p => p.codigo);
+    const criticidades = pendencias.map(p => p.criticidade);
+    const temAlta = criticidades.includes('ALTA');
+    const temMedia = criticidades.includes('MEDIA');
+
+    // CRÍTICA: falha na cadeia de custódia (sempre — independe de idade)
+    if (codigos.includes('VESTIGIO_SEM_CUSTODIA')) return { prioridade: 'CRITICA', motivos: ['VESTIGIO_SEM_CUSTODIA'] };
+    // CRÍTICA: ocorrência não finalizada + sem fotografia + envelhecida (ALTA → CRITICA após 48h)
+    if (codigos.includes('OCORRENCIA_NAO_FINALIZADA') && codigos.includes('SEM_FOTOGRAFIA') && idadeHoras > HORAS_CRITICA_SEM_FOTO) {
+      return { prioridade: 'CRITICA', motivos: ['OCORRENCIA_NAO_FINALIZADA', 'SEM_FOTOGRAFIA'] };
+    }
+
+    // ALTA: pendência ALTA com mais de 24h (MEDIA → ALTA)
+    if (temAlta && idadeHoras > HORAS_ALTA) return { prioridade: 'ALTA', motivos: pendencias.filter(p => p.criticidade === 'ALTA').map(p => p.codigo) };
+
+    // MEDIA: pendência ALTA fresca (≤24h) e/ou pendência MEDIA — motivos: somente ALTA + MEDIA
+    if (temAlta || temMedia) return { prioridade: 'MEDIA', motivos: pendencias.filter(p => p.criticidade === 'ALTA' || p.criticidade === 'MEDIA').map(p => p.codigo) };
+
+    // BAIXA: fallback — somente pendências BAIXA
+    return { prioridade: 'BAIXA', motivos: pendencias.filter(p => p.criticidade === 'BAIXA').map(p => p.codigo) };
+  }
+
+  async getFilaOperacional(dto: FilaOperacionalQueryDto, currentUser: any): Promise<FilaOperacionalResponseDto> {
+    if (!currentUser.unidadeId) return { items: [], page: dto.page || 1, pageSize: dto.pageSize || 20, total: 0, totalPages: 0 };
+    const unidade = await this.prisma.unidade.findUnique({ where: { id: currentUser.unidadeId }, include: { delegacia: true } });
+    if (!unidade?.delegacia) return { items: [], page: dto.page || 1, pageSize: dto.pageSize || 20, total: 0, totalPages: 0 };
+
+    const where: any = { delegaciaId: unidade.delegacia.id };
+    if (dto.dataInicial || dto.dataFinal) {
+      if (dto.dataInicial && dto.dataFinal && new Date(dto.dataInicial) > new Date(dto.dataFinal)) throw new BadRequestException('dataInicial não pode ser posterior a dataFinal.');
+      where.dataOcorrencia = {};
+      if (dto.dataInicial) where.dataOcorrencia.gte = new Date(dto.dataInicial);
+      if (dto.dataFinal) where.dataOcorrencia.lte = new Date(dto.dataFinal);
+    }
+
+    const candidatas = await this.prisma.ocorrencia.findMany({ where, select: { id: true, numeroBo: true, status: true, dataOcorrencia: true }, orderBy: { dataOcorrencia: 'desc' } });
+    if (candidatas.length === 0) return { items: [], page: dto.page || 1, pageSize: dto.pageSize || 20, total: 0, totalPages: 0 };
+
+    const ids = candidatas.map(o => o.id);
+    const [countsPessoa, countsVeic, countsObj, countsVest, countsFoto, countsAnexo, custodiaRows] = await Promise.all([
+      this.prisma.pessoaEnvolvida.groupBy({ by: ['ocorrenciaId'], where: { ocorrenciaId: { in: ids } }, _count: { id: true } }),
+      this.prisma.veiculoOcorrencia.groupBy({ by: ['ocorrenciaId'], where: { ocorrenciaId: { in: ids } }, _count: { id: true } }),
+      this.prisma.objetoOcorrencia.groupBy({ by: ['ocorrenciaId'], where: { ocorrenciaId: { in: ids } }, _count: { id: true } }),
+      this.prisma.vestigioOcorrencia.groupBy({ by: ['ocorrenciaId'], where: { ocorrenciaId: { in: ids } }, _count: { id: true } }),
+      this.prisma.fotografiaOcorrencia.groupBy({ by: ['ocorrenciaId'], where: { ocorrenciaId: { in: ids } }, _count: { id: true } }),
+      this.prisma.anexoOcorrencia.groupBy({ by: ['ocorrenciaId'], where: { ocorrenciaId: { in: ids } }, _count: { id: true } }),
+      this.prisma.vestigioOcorrencia.findMany({ where: { ocorrenciaId: { in: ids }, coletado: true, movimentacoesCustodia: { none: {} } }, select: { ocorrenciaId: true, id: true } }),
+    ]);
+
+    const m = (arr: any[], oid: string) => arr.find(x => x.ocorrenciaId === oid)?._count?.id || 0;
+    const semCustMap = new Map<string, number>();
+    for (const v of custodiaRows) semCustMap.set(v.ocorrenciaId, (semCustMap.get(v.ocorrenciaId) || 0) + 1);
+
+    const now = Date.now();
+    let items = candidatas.map(o => {
+      const counts = { tp: m(countsPessoa, o.id), tv: m(countsVeic, o.id), to_: m(countsObj, o.id), tvt: m(countsVest, o.id), tf: m(countsFoto, o.id), ta: m(countsAnexo, o.id) };
+      const pendencias = this._buildPendencias(o.status, counts, semCustMap.get(o.id) || 0);
+      const idadeHoras = Math.round((now - o.dataOcorrencia.getTime()) / (1000 * 60 * 60));
+      const { prioridade, motivos } = this._buildPrioridade(pendencias, idadeHoras);
+      return { ocorrenciaId: o.id, numeroBo: o.numeroBo, dataOcorrencia: o.dataOcorrencia.toISOString(), idadeHoras, prioridade, motivos, resumoPendencias: { total: pendencias.length, alta: pendencias.filter(p => p.criticidade === 'ALTA').length, media: pendencias.filter(p => p.criticidade === 'MEDIA').length, baixa: pendencias.filter(p => p.criticidade === 'BAIXA').length } };
+    });
+
+    if (dto.prioridade) items = items.filter(it => it.prioridade === dto.prioridade);
+    if (dto.codigoPendencia) { const codigo = dto.codigoPendencia; items = items.filter(it => it.motivos.includes(codigo)); }
+
+    const ordemPrio: any = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAIXA: 3 };
+    items.sort((a, b) => {
+      if (ordemPrio[a.prioridade] !== ordemPrio[b.prioridade]) return ordemPrio[a.prioridade] - ordemPrio[b.prioridade];
+      return b.idadeHoras - a.idadeHoras;
+    });
+
+    const total = items.length;
+    const page = dto.page || 1;
+    const pageSize = dto.pageSize || 20;
+    const paged = items.slice((page - 1) * pageSize, page * pageSize);
+
+    return { items: paged, page, pageSize, total, totalPages: Math.ceil(total / pageSize) };
   }
 
   private _buildPendencias(status: string, c: { tp: number; tv: number; to_: number; tvt: number; tf: number; ta: number }, semCustodia: number): PendenciaDto[] {
